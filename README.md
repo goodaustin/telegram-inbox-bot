@@ -27,6 +27,18 @@ uv run pytest          # all unit tests (mocked)
 uv run pytest -m smoke # real API smoke tests (manual; costs $)
 ```
 
+### To stop / restart the daemon
+
+```bash
+launchctl unload ~/Library/LaunchAgents/com.shao.telegram-inbox.plist
+launchctl load   ~/Library/LaunchAgents/com.shao.telegram-inbox.plist
+```
+
+### Logs
+
+- App: `logs/bot.log` (rotated daily, 14 days kept)
+- launchd: `logs/launchd.out.log`, `logs/launchd.err.log`
+
 ## Architecture
 
 See `docs/specs/2026-06-28-telegram-inbox-bot-design.md`.
