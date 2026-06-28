@@ -12,7 +12,8 @@ from inbox_bot.schemas import ClassifierResult
 
 log = logging.getLogger(__name__)
 
-_BACKOFF_SECONDS: tuple[float, ...] = (1.0, 2.0, 4.0)
+_MAX_ATTEMPTS = 3
+_BACKOFF_SECONDS: tuple[float, ...] = (1.0, 2.0)  # sleeps between attempts (one fewer than attempts)
 _FAILED_WRITES_PATH = Path(__file__).resolve().parents[2] / "logs" / "failed_writes.jsonl"
 
 
@@ -204,7 +205,7 @@ async def write_to_notion(
         })
 
     last_err: Exception | None = None
-    for attempt, delay in enumerate(_BACKOFF_SECONDS, start=1):
+    for attempt in range(1, _MAX_ATTEMPTS + 1):
         try:
             page = await client.pages.create(
                 parent={"database_id": db_id},
@@ -215,8 +216,8 @@ async def write_to_notion(
         except Exception as e:
             last_err = e
             log.warning("notion write attempt %d failed: %s", attempt, e)
-            if attempt < len(_BACKOFF_SECONDS):
-                await asyncio.sleep(delay)
+            if attempt < _MAX_ATTEMPTS:
+                await asyncio.sleep(_BACKOFF_SECONDS[attempt - 1])
 
     # all retries exhausted — append to failed_writes.jsonl
     _FAILED_WRITES_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -230,4 +231,4 @@ async def write_to_notion(
     }
     with _FAILED_WRITES_PATH.open("a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
-    raise NotionWriteError(f"notion write failed after 3 retries: {last_err}") from last_err
+    raise NotionWriteError(f"notion write failed after {_MAX_ATTEMPTS} attempts: {last_err}") from last_err

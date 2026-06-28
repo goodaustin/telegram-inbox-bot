@@ -86,6 +86,68 @@ def test_build_properties_inbox_minimal():
     assert props["Reason"]["rich_text"][0]["text"]["content"].startswith("low_confidence")
 
 
+def test_build_properties_place_smoke():
+    now = datetime(2026, 6, 28, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="place",
+        fields={"name": "Louvre", "city": "Paris/France", "type": "景點", "notes": ""},
+        telegram_url="https://t.me/c/1/2",
+        maps_link="https://maps.google.com/x",
+        now=now,
+    )
+    assert props["Name"]["title"][0]["text"]["content"] == "Louvre"
+    assert props["City/Country"]["select"]["name"] == "Paris/France"
+    assert props["Type"]["select"]["name"] == "景點"
+
+
+def test_build_properties_article_smoke():
+    now = datetime(2026, 6, 28, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="article",
+        fields={"title": "X", "url": "https://x", "publisher": "Y", "summary": "z"},
+        telegram_url="https://t.me/c/1/2", maps_link=None, now=now,
+    )
+    assert props["Title"]["title"][0]["text"]["content"] == "X"
+    assert props["URL"]["url"] == "https://x"
+    assert props["Read?"]["checkbox"] is False
+
+
+def test_build_properties_quote_smoke():
+    now = datetime(2026, 6, 28, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="quote",
+        fields={"quote": "Q", "author": "A", "tags": ["t1"]},
+        telegram_url="https://t.me/c/1/2", maps_link=None, now=now,
+    )
+    assert props["Quote"]["title"][0]["text"]["content"] == "Q"
+    assert props["Author"]["rich_text"][0]["text"]["content"] == "A"
+
+
+def test_build_properties_apparel_smoke():
+    now = datetime(2026, 6, 28, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="apparel",
+        fields={"item": "shirt", "brand": "B", "type": "上衣", "price": 999, "url": "", "notes": ""},
+        telegram_url="https://t.me/c/1/2", maps_link=None, now=now,
+    )
+    assert props["Item"]["title"][0]["text"]["content"] == "shirt"
+    assert props["Type"]["select"]["name"] == "上衣"
+    assert props["Price"]["number"] == 999.0
+
+
+def test_build_properties_skincare_smoke():
+    now = datetime(2026, 6, 28, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="skincare",
+        fields={"product": "Cream", "brand": "B", "category": "乳液",
+                "price": "1500", "url": "", "notes": ""},
+        telegram_url="https://t.me/c/1/2", maps_link=None, now=now,
+    )
+    assert props["Product"]["title"][0]["text"]["content"] == "Cream"
+    assert props["Category"]["select"]["name"] == "乳液"
+    assert props["Price"]["number"] == 1500.0
+
+
 async def test_write_to_notion_dispatches_to_correct_db(settings):
     client = MagicMock()
     client.pages.create = AsyncMock(return_value={"id": "page_x", "url": "https://notion.so/page_x"})
@@ -106,7 +168,7 @@ async def test_write_to_notion_dispatches_to_correct_db(settings):
 
 
 async def test_write_to_notion_retries_on_transient_failure(settings, monkeypatch):
-    monkeypatch.setattr("inbox_bot.notion_writer._BACKOFF_SECONDS", (0, 0, 0))
+    monkeypatch.setattr("inbox_bot.notion_writer._BACKOFF_SECONDS", (0, 0))
     client = MagicMock()
     client.pages.create = AsyncMock(side_effect=[
         Exception("rate limit"),
@@ -126,7 +188,7 @@ async def test_write_to_notion_retries_on_transient_failure(settings, monkeypatc
 async def test_write_to_notion_after_all_retries_appends_to_jsonl(
     settings, monkeypatch, tmp_path
 ):
-    monkeypatch.setattr("inbox_bot.notion_writer._BACKOFF_SECONDS", (0, 0, 0))
+    monkeypatch.setattr("inbox_bot.notion_writer._BACKOFF_SECONDS", (0, 0))
     monkeypatch.setattr("inbox_bot.notion_writer._FAILED_WRITES_PATH",
                         tmp_path / "failed_writes.jsonl")
     client = MagicMock()

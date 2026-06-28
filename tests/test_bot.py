@@ -109,4 +109,4 @@ async def test_classifier_error_replies_with_failure_and_writes_to_inbox(setting
     inbox_result = mock_write.await_args.kwargs["result"]
     assert inbox_result.category == "inbox"
     reply = update.channel_post.reply_text.await_args.args[0]
-    assert "❌" in reply or "Inbox" in reply
+    assert "❌ 分類失敗" in reply

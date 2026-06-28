@@ -59,7 +59,9 @@ async def handle_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE) ->
         return
 
     emoji = CATEGORY_EMOJI.get(result.category, "📥")
-    if result.category == "inbox":
+    if result.fields.get("reason", "").startswith("classifier_error"):
+        await post.reply_text(f"❌ 分類失敗，已存入 Inbox\n{page_url}")
+    elif result.category == "inbox":
         await post.reply_text(f"{emoji} 已存入 Inbox\n{page_url}")
     else:
         await post.reply_text(f"{emoji} → {page_url}")

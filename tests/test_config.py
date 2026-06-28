@@ -1,4 +1,3 @@
-import os
 import pytest
 from inbox_bot.config import Settings, db_id_for_category
 
@@ -40,11 +39,14 @@ def test_settings_defaults(fake_env):
     assert s.digest_minute == 30
 
 
-def test_db_id_for_category_dispatches_correctly(fake_env):
+@pytest.mark.parametrize("cat,expected", [
+    ("restaurant", "db_rest"), ("place", "db_place"), ("todo", "db_todo"),
+    ("article", "db_article"), ("quote", "db_quote"), ("apparel", "db_apparel"),
+    ("skincare", "db_skincare"), ("inbox", "db_inbox"),
+])
+def test_db_id_for_category_dispatches_correctly(fake_env, cat, expected):
     s = Settings()
-    assert db_id_for_category("restaurant", s) == "db_rest"
-    assert db_id_for_category("todo", s) == "db_todo"
-    assert db_id_for_category("inbox", s) == "db_inbox"
+    assert db_id_for_category(cat, s) == expected
 
 
 def test_db_id_for_unknown_category_falls_back_to_inbox(fake_env):

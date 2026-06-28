@@ -97,6 +97,9 @@ async def classify(
                     },
                 )
             return result
+        except ClassifierError:
+            # structural failure — don't retry, don't wrap
+            raise
         except Exception as e:
             last_err = e
             if attempt == 1:

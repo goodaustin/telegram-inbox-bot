@@ -47,8 +47,11 @@ async def _run() -> None:
         replace_existing=True,
     )
     scheduler.start()
-    logging.info("scheduler started; next digest: %s",
-                 scheduler.get_job("weekly_digest").next_run_time)
+    job = scheduler.get_job("weekly_digest")
+    if job:
+        logging.info("scheduler started; next digest: %s", job.next_run_time)
+    else:
+        logging.warning("scheduler started but weekly_digest job not registered")
 
     await app.initialize()
     await app.start()

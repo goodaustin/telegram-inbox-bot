@@ -90,6 +90,23 @@ async def test_raises_after_second_failure(settings):
                        settings=settings, client=client)
 
 
+async def test_does_not_retry_on_structural_error(settings):
+    """When forced tool_use somehow returns no tool_use block, fail fast (no retry)."""
+    text_block = MagicMock()
+    text_block.type = "text"  # not tool_use
+    text_block.input = None
+    response = MagicMock()
+    response.content = [text_block]
+    client = MagicMock()
+    client.messages.create = AsyncMock(return_value=response)
+
+    with pytest.raises(ClassifierError):
+        await classify(image_bytes=None, text="x",
+                       settings=settings, client=client)
+    # MUST be exactly 1 call — no retry on structural failure
+    assert client.messages.create.await_count == 1
+
+
 def test_classify_tool_schema_includes_all_categories():
     enum = CLASSIFY_TOOL["input_schema"]["properties"]["category"]["enum"]
     assert set(enum) == {"restaurant", "place", "todo", "article",
