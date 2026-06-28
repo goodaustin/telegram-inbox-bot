@@ -1,0 +1,149 @@
+import json
+from datetime import datetime
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
+from zoneinfo import ZoneInfo
+import pytest
+from inbox_bot.notion_writer import (
+    build_maps_link, build_telegram_url, build_properties, write_to_notion,
+    NotionWriteError,
+)
+from inbox_bot.schemas import ClassifierResult
+from inbox_bot.config import Settings
+
+
+@pytest.fixture
+def settings(monkeypatch):
+    for k, v in {
+        "TELEGRAM_BOT_TOKEN": "x", "TELEGRAM_CHANNEL_ID": "-1001234567890",
+        "ANTHROPIC_API_KEY": "x", "NOTION_TOKEN": "x",
+        "NOTION_DB_RESTAURANT": "db_rest", "NOTION_DB_PLACE": "db_place",
+        "NOTION_DB_TODO": "db_todo", "NOTION_DB_ARTICLE": "db_article",
+        "NOTION_DB_QUOTE": "db_quote", "NOTION_DB_APPAREL": "db_apparel",
+        "NOTION_DB_SKINCARE": "db_skincare", "NOTION_DB_INBOX": "db_inbox",
+    }.items():
+        monkeypatch.setenv(k, v)
+    return Settings()
+
+
+def test_maps_link_encodes_query():
+    url = build_maps_link("Maisen", "東京/表參道")
+    assert url.startswith("https://www.google.com/maps/search/?api=1&query=")
+    assert "Maisen" in url
+    # encoded Chinese
+    assert "%E6%9D%B1%E4%BA%AC" in url
+
+
+def test_telegram_url_strips_100_prefix():
+    # channel -1001234567890 → t.me/c/1234567890/<msg>
+    url = build_telegram_url(-1001234567890, 42)
+    assert url == "https://t.me/c/1234567890/42"
+
+
+def test_build_properties_restaurant():
+    now = datetime(2026, 6, 28, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="restaurant",
+        fields={"name": "Maisen", "city": "東京/表參道",
+                "cuisine": ["日料", "炸物"], "notes": ""},
+        telegram_url="https://t.me/c/1/2",
+        maps_link="https://maps.google.com/...",
+        now=now,
+    )
+    assert props["Name"]["title"][0]["text"]["content"] == "Maisen"
+    assert props["City/Area"]["select"]["name"] == "東京/表參道"
+    assert {o["name"] for o in props["Cuisine"]["multi_select"]} == {"日料", "炸物"}
+    assert props["Maps Link"]["url"].startswith("https://maps.google")
+    assert props["Source"]["url"] == "https://t.me/c/1/2"
+    assert props["Date Added"]["date"]["start"].startswith("2026-06-28")
+
+
+def test_build_properties_todo_sets_deadline_plus_7_days():
+    now = datetime(2026, 6, 28, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="todo",
+        fields={"task": "預約洗牙", "notes": ""},
+        telegram_url="https://t.me/c/1/2",
+        maps_link=None,
+        now=now,
+    )
+    assert props["Task"]["title"][0]["text"]["content"] == "預約洗牙"
+    # 2026-06-28 + 7 days = 2026-07-05
+    assert props["Deadline"]["date"]["start"].startswith("2026-07-05")
+    assert props["Status"]["status"]["name"] == "Todo"
+
+
+def test_build_properties_inbox_minimal():
+    now = datetime(2026, 6, 28, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="inbox",
+        fields={"reason": "low_confidence", "original_category": "restaurant"},
+        telegram_url="https://t.me/c/1/2",
+        maps_link=None,
+        now=now,
+    )
+    assert "Raw Text" in props
+    assert props["Reason"]["rich_text"][0]["text"]["content"].startswith("low_confidence")
+
+
+async def test_write_to_notion_dispatches_to_correct_db(settings):
+    client = MagicMock()
+    client.pages.create = AsyncMock(return_value={"id": "page_x", "url": "https://notion.so/page_x"})
+    result = ClassifierResult(
+        category="quote", confidence=0.9, raw_text="x",
+        fields={"quote": "x", "author": "", "tags": []},
+    )
+    url = await write_to_notion(
+        result=result,
+        telegram_message_url="https://t.me/c/1/2",
+        image_bytes=None,
+        settings=settings,
+        client=client,
+    )
+    assert url == "https://notion.so/page_x"
+    args, kwargs = client.pages.create.call_args
+    assert kwargs["parent"]["database_id"] == "db_quote"
+
+
+async def test_write_to_notion_retries_on_transient_failure(settings, monkeypatch):
+    monkeypatch.setattr("inbox_bot.notion_writer._BACKOFF_SECONDS", (0, 0, 0))
+    client = MagicMock()
+    client.pages.create = AsyncMock(side_effect=[
+        Exception("rate limit"),
+        Exception("rate limit"),
+        {"id": "p", "url": "https://notion.so/p"},
+    ])
+    result = ClassifierResult(category="quote", confidence=0.9, raw_text="x",
+                              fields={"quote": "x"})
+    url = await write_to_notion(
+        result=result, telegram_message_url="https://t.me/c/1/2",
+        image_bytes=None, settings=settings, client=client,
+    )
+    assert url == "https://notion.so/p"
+    assert client.pages.create.await_count == 3
+
+
+async def test_write_to_notion_after_all_retries_appends_to_jsonl(
+    settings, monkeypatch, tmp_path
+):
+    monkeypatch.setattr("inbox_bot.notion_writer._BACKOFF_SECONDS", (0, 0, 0))
+    monkeypatch.setattr("inbox_bot.notion_writer._FAILED_WRITES_PATH",
+                        tmp_path / "failed_writes.jsonl")
+    client = MagicMock()
+    client.pages.create = AsyncMock(side_effect=Exception("permanent"))
+    result = ClassifierResult(category="quote", confidence=0.9, raw_text="x",
+                              fields={"quote": "x"})
+
+    with pytest.raises(NotionWriteError):
+        await write_to_notion(
+            result=result, telegram_message_url="https://t.me/c/1/2",
+            image_bytes=None, settings=settings, client=client,
+        )
+    assert client.pages.create.await_count == 3
+
+    jsonl = (tmp_path / "failed_writes.jsonl").read_text().splitlines()
+    assert len(jsonl) == 1
+    record = json.loads(jsonl[0])
+    assert record["category"] == "quote"
+    assert record["telegram_url"] == "https://t.me/c/1/2"
+    assert "error" in record
