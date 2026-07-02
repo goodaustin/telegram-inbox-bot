@@ -105,7 +105,7 @@ def build_properties(
         return {
             "Task": _title(g("task", "")),
             "Deadline": _date(deadline),
-            "Status": _status("Todo"),
+            "Status": _status("Not started"),
             "Notes": _text(g("notes", "")),
             "Source": _url(telegram_url),
             "Date Added": _date(now),

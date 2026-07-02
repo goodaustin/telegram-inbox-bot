@@ -70,7 +70,7 @@ def test_build_properties_todo_sets_deadline_plus_7_days():
     assert props["Task"]["title"][0]["text"]["content"] == "預約洗牙"
     # 2026-06-28 + 7 days = 2026-07-05
     assert props["Deadline"]["date"]["start"].startswith("2026-07-05")
-    assert props["Status"]["status"]["name"] == "Todo"
+    assert props["Status"]["status"]["name"] == "Not started"
 
 
 def test_build_properties_inbox_minimal():

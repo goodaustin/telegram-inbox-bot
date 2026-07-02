@@ -55,7 +55,10 @@ async def _run() -> None:
 
     await app.initialize()
     await app.start()
-    await app.updater.start_polling(drop_pending_updates=True)
+    # Keep pending updates so messages posted while the bot was offline (e.g. the
+    # laptop was asleep/closed) are processed on next start. Telegram retains
+    # undelivered updates for ~24h; beyond that they are dropped server-side.
+    await app.updater.start_polling(drop_pending_updates=False)
     logging.info("bot started (long-polling)")
     try:
         # block forever
