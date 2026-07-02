@@ -9,7 +9,7 @@ requires-python = ">=3.11"
 dependencies = [
     "python-telegram-bot>=21.0,<22",
     "anthropic>=0.40,<1",
-    "notion-client>=2.2,<3",
+    "notion-client>=2.2,<2.4",  # pin to classic 2022-06-28 API (database_id parent + databases.query); 2.4+ defaults to 2025-09-03 data-sources API which this code doesn't use
     "apscheduler>=3.10,<4",
     "pydantic>=2.5,<3",
     "pydantic-settings>=2.1,<3",
