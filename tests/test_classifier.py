@@ -9,7 +9,7 @@ from inbox_bot.config import Settings
 def settings(monkeypatch):
     for k, v in {
         "TELEGRAM_BOT_TOKEN": "x", "TELEGRAM_CHANNEL_ID": "-1001",
-        "ANTHROPIC_API_KEY": "x", "NOTION_TOKEN": "x",
+        "OPENAI_API_KEY": "x", "NOTION_TOKEN": "x",
         "NOTION_DB_RESTAURANT": "a", "NOTION_DB_PLACE": "b",
         "NOTION_DB_TODO": "c", "NOTION_DB_ARTICLE": "d",
         "NOTION_DB_QUOTE": "e", "NOTION_DB_APPAREL": "f",
@@ -19,17 +19,30 @@ def settings(monkeypatch):
     return Settings()
 
 
-def make_mock_client(tool_input: dict):
-    """Return an AsyncAnthropic-like mock whose .messages.create returns a forced tool_use."""
-    tool_block = MagicMock()
-    tool_block.type = "tool_use"
-    tool_block.name = "classify_item"
-    tool_block.input = tool_input
+def _make_response(tool_arguments: dict):
+    """Build an OpenAI-like chat completion carrying a forced function tool_call.
+
+    OpenAI returns tool-call arguments as a JSON *string* under
+    resp.choices[0].message.tool_calls[0].function.arguments.
+    """
+    fn = MagicMock()
+    fn.name = "classify_item"
+    fn.arguments = json.dumps(tool_arguments)
+    tool_call = MagicMock()
+    tool_call.function = fn
+    message = MagicMock()
+    message.tool_calls = [tool_call]
+    choice = MagicMock()
+    choice.message = message
     response = MagicMock()
-    response.content = [tool_block]
-    response.stop_reason = "tool_use"
+    response.choices = [choice]
+    return response
+
+
+def make_mock_client(tool_arguments: dict):
+    """Return an AsyncOpenAI-like mock whose chat.completions.create returns a forced tool call."""
     client = MagicMock()
-    client.messages.create = AsyncMock(return_value=response)
+    client.chat.completions.create = AsyncMock(return_value=_make_response(tool_arguments))
     return client
 
 
@@ -62,49 +75,44 @@ async def test_low_confidence_routes_to_inbox(settings):
 
 
 async def test_retries_once_on_api_error(settings):
-    from anthropic import APIError
-    client = MagicMock()
-    # Use a real APIError-like exception
     err = Exception("transient")
-    success_block = MagicMock()
-    success_block.type = "tool_use"
-    success_block.input = {
+    success = _make_response({
         "category": "quote", "confidence": 0.9,
         "raw_text": "x", "fields": {"quote": "x", "author": "", "tags": []},
-    }
-    success_resp = MagicMock()
-    success_resp.content = [success_block]
-    client.messages.create = AsyncMock(side_effect=[err, success_resp])
+    })
+    client = MagicMock()
+    client.chat.completions.create = AsyncMock(side_effect=[err, success])
 
     result = await classify(image_bytes=None, text="x",
                             settings=settings, client=client)
     assert result.category == "quote"
-    assert client.messages.create.await_count == 2
+    assert client.chat.completions.create.await_count == 2
 
 
 async def test_raises_after_second_failure(settings):
     client = MagicMock()
-    client.messages.create = AsyncMock(side_effect=Exception("perm fail"))
+    client.chat.completions.create = AsyncMock(side_effect=Exception("perm fail"))
     with pytest.raises(ClassifierError):
         await classify(image_bytes=None, text="x",
                        settings=settings, client=client)
 
 
 async def test_does_not_retry_on_structural_error(settings):
-    """When forced tool_use somehow returns no tool_use block, fail fast (no retry)."""
-    text_block = MagicMock()
-    text_block.type = "text"  # not tool_use
-    text_block.input = None
+    """When the forced call somehow returns no tool_calls, fail fast (no retry)."""
+    message = MagicMock()
+    message.tool_calls = None  # no tool call present
+    choice = MagicMock()
+    choice.message = message
     response = MagicMock()
-    response.content = [text_block]
+    response.choices = [choice]
     client = MagicMock()
-    client.messages.create = AsyncMock(return_value=response)
+    client.chat.completions.create = AsyncMock(return_value=response)
 
     with pytest.raises(ClassifierError):
         await classify(image_bytes=None, text="x",
                        settings=settings, client=client)
     # MUST be exactly 1 call — no retry on structural failure
-    assert client.messages.create.await_count == 1
+    assert client.chat.completions.create.await_count == 1
 
 
 def test_classify_tool_schema_includes_all_categories():

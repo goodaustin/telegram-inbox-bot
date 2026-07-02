@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     telegram_bot_token: str
     telegram_channel_id: int
-    anthropic_api_key: str
+    openai_api_key: str
     notion_token: str
 
     notion_db_restaurant: str
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     notion_db_skincare: str
     notion_db_inbox: str
 
-    classifier_model: str = "claude-haiku-4-5-20251001"
+    classifier_model: str = "gpt-4.1-mini"
     confidence_threshold: float = 0.6
     timezone: str = "Asia/Taipei"
     digest_hour: int = 7

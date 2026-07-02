@@ -1,8 +1,9 @@
 import asyncio
 import base64
+import json
 from importlib import resources
 from typing import Any
-from anthropic import AsyncAnthropic
+from openai import AsyncOpenAI
 from inbox_bot.config import Settings
 from inbox_bot.schemas import ClassifierResult
 
@@ -30,6 +31,16 @@ CLASSIFY_TOOL: dict[str, Any] = {
     },
 }
 
+# OpenAI function-calling wrapper around CLASSIFY_TOOL's schema.
+_OPENAI_TOOL: dict[str, Any] = {
+    "type": "function",
+    "function": {
+        "name": CLASSIFY_TOOL["name"],
+        "description": CLASSIFY_TOOL["description"],
+        "parameters": CLASSIFY_TOOL["input_schema"],
+    },
+}
+
 
 def _load_system_prompt() -> str:
     return resources.files("inbox_bot.prompts").joinpath("classify.md").read_text(encoding="utf-8")
@@ -38,13 +49,10 @@ def _load_system_prompt() -> str:
 def _build_content(image_bytes: bytes | None, text: str | None) -> list[dict[str, Any]]:
     parts: list[dict[str, Any]] = []
     if image_bytes:
+        b64 = base64.b64encode(image_bytes).decode("ascii")
         parts.append({
-            "type": "image",
-            "source": {
-                "type": "base64",
-                "media_type": "image/jpeg",
-                "data": base64.b64encode(image_bytes).decode("ascii"),
-            },
+            "type": "image_url",
+            "image_url": {"url": f"data:image/jpeg;base64,{b64}"},
         })
     if text:
         parts.append({"type": "text", "text": text})
@@ -58,10 +66,10 @@ async def classify(
     image_bytes: bytes | None,
     text: str | None,
     settings: Settings,
-    client: AsyncAnthropic | None = None,
+    client: AsyncOpenAI | None = None,
 ) -> ClassifierResult:
     if client is None:
-        client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+        client = AsyncOpenAI(api_key=settings.openai_api_key)
 
     system = _load_system_prompt()
     content = _build_content(image_bytes, text)
@@ -69,22 +77,22 @@ async def classify(
     last_err: Exception | None = None
     for attempt in (1, 2):
         try:
-            resp = await client.messages.create(
+            resp = await client.chat.completions.create(
                 model=settings.classifier_model,
                 max_tokens=1024,
-                system=system,
-                tools=[CLASSIFY_TOOL],
-                tool_choice={"type": "tool", "name": "classify_item"},
-                messages=[{"role": "user", "content": content}],
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": content},
+                ],
+                tools=[_OPENAI_TOOL],
+                tool_choice={"type": "function", "function": {"name": "classify_item"}},
             )
-            tool_block = next(
-                (b for b in resp.content if getattr(b, "type", None) == "tool_use"),
-                None,
-            )
-            if tool_block is None:
-                raise ClassifierError("no tool_use block in response")
+            tool_calls = resp.choices[0].message.tool_calls
+            if not tool_calls:
+                raise ClassifierError("no tool_calls in response")
 
-            result = ClassifierResult(**tool_block.input)
+            args = json.loads(tool_calls[0].function.arguments)
+            result = ClassifierResult(**args)
             if result.confidence < settings.confidence_threshold:
                 return ClassifierResult(
                     category="inbox",

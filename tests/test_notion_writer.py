@@ -16,7 +16,7 @@ from inbox_bot.config import Settings
 def settings(monkeypatch):
     for k, v in {
         "TELEGRAM_BOT_TOKEN": "x", "TELEGRAM_CHANNEL_ID": "-1001234567890",
-        "ANTHROPIC_API_KEY": "x", "NOTION_TOKEN": "x",
+        "OPENAI_API_KEY": "x", "NOTION_TOKEN": "x",
         "NOTION_DB_RESTAURANT": "db_rest", "NOTION_DB_PLACE": "db_place",
         "NOTION_DB_TODO": "db_todo", "NOTION_DB_ARTICLE": "db_article",
         "NOTION_DB_QUOTE": "db_quote", "NOTION_DB_APPAREL": "db_apparel",

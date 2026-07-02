@@ -7,7 +7,7 @@ def fake_env(monkeypatch):
     env = {
         "TELEGRAM_BOT_TOKEN": "123:abc",
         "TELEGRAM_CHANNEL_ID": "-1001234567890",
-        "ANTHROPIC_API_KEY": "sk-ant-x",
+        "OPENAI_API_KEY": "sk-proj-x",
         "NOTION_TOKEN": "ntn_x",
         "NOTION_DB_RESTAURANT": "db_rest",
         "NOTION_DB_PLACE": "db_place",
@@ -30,9 +30,11 @@ def test_settings_loads_required_fields(fake_env):
     assert s.notion_db_restaurant == "db_rest"
 
 
-def test_settings_defaults(fake_env):
-    s = Settings()
-    assert s.classifier_model == "claude-haiku-4-5-20251001"
+def test_settings_defaults(fake_env, monkeypatch):
+    # bypass the project .env so we assert the real code defaults, not stale overrides
+    monkeypatch.delenv("CLASSIFIER_MODEL", raising=False)
+    s = Settings(_env_file=None)
+    assert s.classifier_model == "gpt-4.1-mini"
     assert s.confidence_threshold == 0.6
     assert s.timezone == "Asia/Taipei"
     assert s.digest_hour == 7
