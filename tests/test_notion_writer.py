@@ -21,6 +21,7 @@ def settings(monkeypatch):
         "NOTION_DB_TODO": "db_todo", "NOTION_DB_ARTICLE": "db_article",
         "NOTION_DB_QUOTE": "db_quote", "NOTION_DB_APPAREL": "db_apparel",
         "NOTION_DB_SKINCARE": "db_skincare", "NOTION_DB_PHOTO": "db_photo",
+        "NOTION_DB_FUNNY": "db_funny",
         "NOTION_DB_INBOX": "db_inbox",
     }.items():
         monkeypatch.setenv(k, v)
@@ -85,6 +86,21 @@ def test_build_properties_photo_has_no_status():
     )
     assert props["Name"]["title"][0]["text"]["content"] == "京都嵐山竹林"
     assert props["Notes"]["rich_text"][0]["text"]["content"] == "構圖漂亮"
+    assert props["Source"]["url"] == "https://t.me/c/1/2"
+    assert "Status" not in props
+
+
+def test_build_properties_funny():
+    now = datetime(2026, 7, 4, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="funny",
+        fields={"caption": "貓咪踩鍵盤", "tags": ["動物", "迷因"], "notes": ""},
+        telegram_url="https://t.me/c/1/2",
+        maps_link=None,
+        now=now,
+    )
+    assert props["Name"]["title"][0]["text"]["content"] == "貓咪踩鍵盤"
+    assert {o["name"] for o in props["Tags"]["multi_select"]} == {"動物", "迷因"}
     assert props["Source"]["url"] == "https://t.me/c/1/2"
     assert "Status" not in props
 

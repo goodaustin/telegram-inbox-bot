@@ -15,7 +15,7 @@ def settings(monkeypatch):
         "NOTION_DB_RESTAURANT": "a", "NOTION_DB_PLACE": "b",
         "NOTION_DB_TODO": "c", "NOTION_DB_ARTICLE": "d",
         "NOTION_DB_QUOTE": "e", "NOTION_DB_APPAREL": "f",
-        "NOTION_DB_SKINCARE": "g", "NOTION_DB_PHOTO": "p", "NOTION_DB_INBOX": "h",
+        "NOTION_DB_SKINCARE": "g", "NOTION_DB_PHOTO": "p", "NOTION_DB_FUNNY": "fn", "NOTION_DB_INBOX": "h",
     }.items():
         monkeypatch.setenv(k, v)
     return Settings()

@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 Category = Literal[
     "restaurant", "place", "todo", "article",
-    "quote", "apparel", "skincare", "photo", "inbox",
+    "quote", "apparel", "skincare", "photo", "funny", "inbox",
 ]
 
 
@@ -23,5 +23,6 @@ CATEGORY_FIELD_SCHEMAS: dict[Category, list[str]] = {
     "apparel":    ["item", "brand", "type", "price", "url", "notes"],
     "skincare":   ["product", "brand", "category", "price", "url", "notes"],
     "photo":      ["description", "notes"],
+    "funny":      ["caption", "tags", "notes"],
     "inbox":      ["reason"],
 }
