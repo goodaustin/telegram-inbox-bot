@@ -94,6 +94,13 @@ async def test_photo_downloads_largest_size_and_classifies(settings):
     assert kwargs["text"] == "看起來不錯"
 
 
+def test_category_emoji_covers_all_categories():
+    from typing import get_args
+    from inbox_bot.schemas import Category
+    missing = set(get_args(Category)) - set(CATEGORY_EMOJI)
+    assert not missing, f"CATEGORY_EMOJI missing: {missing}"
+
+
 async def test_classifier_error_replies_with_failure_and_writes_to_inbox(settings):
     from inbox_bot.classifier import ClassifierError
     update = _make_update_with_text(99, "x", -1001234567890)
