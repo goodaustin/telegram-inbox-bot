@@ -20,7 +20,8 @@ def settings(monkeypatch):
         "NOTION_DB_RESTAURANT": "db_rest", "NOTION_DB_PLACE": "db_place",
         "NOTION_DB_TODO": "db_todo", "NOTION_DB_ARTICLE": "db_article",
         "NOTION_DB_QUOTE": "db_quote", "NOTION_DB_APPAREL": "db_apparel",
-        "NOTION_DB_SKINCARE": "db_skincare", "NOTION_DB_INBOX": "db_inbox",
+        "NOTION_DB_SKINCARE": "db_skincare", "NOTION_DB_PHOTO": "db_photo",
+        "NOTION_DB_INBOX": "db_inbox",
     }.items():
         monkeypatch.setenv(k, v)
     return Settings()
@@ -71,6 +72,21 @@ def test_build_properties_todo_sets_deadline_plus_7_days():
     # 2026-06-28 + 7 days = 2026-07-05
     assert props["Deadline"]["date"]["start"].startswith("2026-07-05")
     assert props["Status"]["status"]["name"] == "Not started"
+
+
+def test_build_properties_photo_has_no_status():
+    now = datetime(2026, 7, 4, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="photo",
+        fields={"description": "京都嵐山竹林", "notes": "構圖漂亮"},
+        telegram_url="https://t.me/c/1/2",
+        maps_link=None,
+        now=now,
+    )
+    assert props["Name"]["title"][0]["text"]["content"] == "京都嵐山竹林"
+    assert props["Notes"]["rich_text"][0]["text"]["content"] == "構圖漂亮"
+    assert props["Source"]["url"] == "https://t.me/c/1/2"
+    assert "Status" not in props
 
 
 def test_build_properties_inbox_minimal():

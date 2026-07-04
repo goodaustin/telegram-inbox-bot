@@ -22,7 +22,7 @@ CLASSIFY_TOOL: dict[str, Any] = {
             "category": {
                 "type": "string",
                 "enum": ["restaurant", "place", "todo", "article",
-                         "quote", "apparel", "skincare", "inbox"],
+                         "quote", "apparel", "skincare", "photo", "inbox"],
             },
             "confidence": {"type": "number", "minimum": 0, "maximum": 1},
             "raw_text": {"type": "string"},

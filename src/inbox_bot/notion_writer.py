@@ -150,6 +150,13 @@ def build_properties(
             "Source": _url(telegram_url),
             "Date Added": _date(now),
         }
+    if category == "photo":
+        return {
+            "Name": _title(g("description", "")),
+            "Notes": _text(g("notes", "")),
+            "Source": _url(telegram_url),
+            "Date Added": _date(now),
+        }
     # inbox fallback
     return {
         "Raw Text": _title(g("raw_text", "") or fields.get("reason", "")),

@@ -13,7 +13,7 @@ def settings(monkeypatch):
         "NOTION_DB_RESTAURANT": "a", "NOTION_DB_PLACE": "b",
         "NOTION_DB_TODO": "c", "NOTION_DB_ARTICLE": "d",
         "NOTION_DB_QUOTE": "e", "NOTION_DB_APPAREL": "f",
-        "NOTION_DB_SKINCARE": "g", "NOTION_DB_INBOX": "h",
+        "NOTION_DB_SKINCARE": "g", "NOTION_DB_PHOTO": "p", "NOTION_DB_INBOX": "h",
     }.items():
         monkeypatch.setenv(k, v)
     return Settings()
@@ -118,4 +118,4 @@ async def test_does_not_retry_on_structural_error(settings):
 def test_classify_tool_schema_includes_all_categories():
     enum = CLASSIFY_TOOL["input_schema"]["properties"]["category"]["enum"]
     assert set(enum) == {"restaurant", "place", "todo", "article",
-                         "quote", "apparel", "skincare", "inbox"}
+                         "quote", "apparel", "skincare", "photo", "inbox"}

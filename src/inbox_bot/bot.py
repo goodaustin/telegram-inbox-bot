@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 
 CATEGORY_EMOJI = {
     "restaurant": "🍴", "place": "📍", "todo": "✅", "article": "📖",
-    "quote": "💬", "apparel": "👗", "skincare": "💄", "inbox": "🗂",
+    "quote": "💬", "apparel": "👗", "skincare": "💄", "photo": "📷", "inbox": "🗂",
 }
 
 

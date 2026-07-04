@@ -16,6 +16,7 @@ def fake_env(monkeypatch):
         "NOTION_DB_QUOTE": "db_quote",
         "NOTION_DB_APPAREL": "db_apparel",
         "NOTION_DB_SKINCARE": "db_skincare",
+        "NOTION_DB_PHOTO": "db_photo",
         "NOTION_DB_INBOX": "db_inbox",
     }
     for k, v in env.items():
@@ -44,7 +45,7 @@ def test_settings_defaults(fake_env, monkeypatch):
 @pytest.mark.parametrize("cat,expected", [
     ("restaurant", "db_rest"), ("place", "db_place"), ("todo", "db_todo"),
     ("article", "db_article"), ("quote", "db_quote"), ("apparel", "db_apparel"),
-    ("skincare", "db_skincare"), ("inbox", "db_inbox"),
+    ("skincare", "db_skincare"), ("photo", "db_photo"), ("inbox", "db_inbox"),
 ])
 def test_db_id_for_category_dispatches_correctly(fake_env, cat, expected):
     s = Settings()

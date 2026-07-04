@@ -26,8 +26,12 @@ def test_classifier_result_rejects_out_of_range_confidence():
 
 def test_all_categories_have_field_schema():
     expected = {"restaurant", "place", "todo", "article", "quote",
-                "apparel", "skincare", "inbox"}
+                "apparel", "skincare", "photo", "inbox"}
     assert set(CATEGORY_FIELD_SCHEMAS.keys()) == expected
+
+
+def test_photo_schema_has_expected_fields():
+    assert CATEGORY_FIELD_SCHEMAS["photo"] == ["description", "notes"]
 
 
 def test_inbox_schema_is_minimal():

@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     notion_db_quote: str
     notion_db_apparel: str
     notion_db_skincare: str
+    notion_db_photo: str
     notion_db_inbox: str
 
     classifier_model: str = "gpt-4.1-mini"
@@ -41,6 +42,7 @@ _CATEGORY_TO_ATTR = {
     "quote": "notion_db_quote",
     "apparel": "notion_db_apparel",
     "skincare": "notion_db_skincare",
+    "photo": "notion_db_photo",
     "inbox": "notion_db_inbox",
 }
 
