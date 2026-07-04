@@ -25,7 +25,7 @@ DBS: dict[str, tuple[str, dict]] = {
     "NOTION_DB_TODO": ("待辦", {
         "Task": {"title": {}}, "Deadline": {"date": {}}, "Notes": {"rich_text": {}},
         "Source": {"url": {}}, "Date Added": {"date": {}},
-        # 注意：Status（status 型）API 無法建立，請到 Notion 手動加（選項 Todo/Done）
+        # 注意：Status（status 型）API 無法建立，請到 Notion 手動加（預設選項 Not started/Done 即可，勿改名）
     }),
     "NOTION_DB_ARTICLE": ("待讀待看", {
         "Title": {"title": {}}, "URL": {"url": {}}, "Publisher": {"rich_text": {}},
@@ -83,7 +83,9 @@ async def main() -> None:
 
     print("\n# ↓↓↓ 把下面全部貼進 .env ↓↓↓")
     print("\n".join(lines))
-    print("\n提醒：到 Notion 的「待辦」DB 手動新增一個 Status 欄位（status 型，選項 Todo / Done）。")
+    print("\n提醒：到 Notion 的「待辦」DB 手動新增一個 Status 欄位（status 型）。")
+    print("      保留 Notion 的預設選項即可（Not started / In progress / Done）——")
+    print("      bot 會寫入狀態「Not started」、每週摘要會過濾「Done」，請勿改成 Todo/Done。")
 
 
 if __name__ == "__main__":
