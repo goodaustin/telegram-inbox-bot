@@ -119,3 +119,32 @@ def test_classify_tool_schema_includes_all_categories():
     enum = CLASSIFY_TOOL["input_schema"]["properties"]["category"]["enum"]
     assert set(enum) == {"restaurant", "place", "todo", "article",
                          "quote", "apparel", "skincare", "photo", "funny", "inbox"}
+
+
+def test_make_client_openai_uses_api_key(settings, monkeypatch):
+    import inbox_bot.classifier as clf
+    fake = MagicMock()
+    monkeypatch.setattr(clf, "AsyncOpenAI", fake)
+    clf._make_client(settings)
+    fake.assert_called_once_with(api_key=settings.openai_api_key)
+
+
+def test_make_client_gemini_uses_base_url(monkeypatch):
+    import inbox_bot.classifier as clf
+    from inbox_bot.config import Settings
+    env = {
+        "TELEGRAM_BOT_TOKEN": "x", "TELEGRAM_CHANNEL_ID": "-1001",
+        "NOTION_TOKEN": "x", "CLASSIFIER_PROVIDER": "gemini", "GEMINI_API_KEY": "gm-x",
+        "NOTION_DB_RESTAURANT": "a", "NOTION_DB_PLACE": "b", "NOTION_DB_TODO": "c",
+        "NOTION_DB_ARTICLE": "d", "NOTION_DB_QUOTE": "e", "NOTION_DB_APPAREL": "f",
+        "NOTION_DB_SKINCARE": "g", "NOTION_DB_PHOTO": "p", "NOTION_DB_FUNNY": "fn",
+        "NOTION_DB_INBOX": "h",
+    }
+    for k, v in env.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    s = Settings(_env_file=None)
+    fake = MagicMock()
+    monkeypatch.setattr(clf, "AsyncOpenAI", fake)
+    clf._make_client(s)
+    fake.assert_called_once_with(api_key="gm-x", base_url=s.gemini_base_url)

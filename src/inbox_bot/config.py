@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,7 +10,7 @@ class Settings(BaseSettings):
 
     telegram_bot_token: str
     telegram_channel_id: int
-    openai_api_key: str
+    openai_api_key: str = ""
     notion_token: str
 
     notion_db_restaurant: str
@@ -23,11 +24,27 @@ class Settings(BaseSettings):
     notion_db_funny: str
     notion_db_inbox: str
 
+    classifier_provider: str = "openai"
+    gemini_api_key: str = ""
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
     classifier_model: str = "gpt-4.1-mini"
     confidence_threshold: float = 0.6
     timezone: str = "Asia/Taipei"
     digest_hour: int = 7
     digest_minute: int = 30
+
+    @model_validator(mode="after")
+    def _check_provider_key(self) -> "Settings":
+        if self.classifier_provider == "openai":
+            if not self.openai_api_key:
+                raise ValueError("classifier_provider=openai requires OPENAI_API_KEY")
+        elif self.classifier_provider == "gemini":
+            if not self.gemini_api_key:
+                raise ValueError("classifier_provider=gemini requires GEMINI_API_KEY")
+        else:
+            raise ValueError(f"unknown classifier_provider: {self.classifier_provider!r}")
+        return self
 
 
 @lru_cache

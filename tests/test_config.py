@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 from inbox_bot.config import Settings, db_id_for_category
 
 
@@ -57,3 +58,36 @@ def test_db_id_for_category_dispatches_correctly(fake_env, cat, expected):
 def test_db_id_for_unknown_category_falls_back_to_inbox(fake_env):
     s = Settings()
     assert db_id_for_category("weird_unknown", s) == "db_inbox"
+
+
+def test_classifier_provider_defaults_to_openai(fake_env):
+    assert Settings().classifier_provider == "openai"
+
+
+def test_gemini_provider_requires_gemini_key(fake_env, monkeypatch):
+    monkeypatch.setenv("CLASSIFIER_PROVIDER", "gemini")
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_openai_provider_requires_openai_key(fake_env, monkeypatch):
+    monkeypatch.setenv("CLASSIFIER_PROVIDER", "openai")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_unknown_provider_rejected(fake_env, monkeypatch):
+    monkeypatch.setenv("CLASSIFIER_PROVIDER", "claude")
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_gemini_provider_valid_without_openai_key(fake_env, monkeypatch):
+    monkeypatch.setenv("CLASSIFIER_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "gm-x")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    s = Settings(_env_file=None)
+    assert s.classifier_provider == "gemini"
+    assert s.gemini_api_key == "gm-x"

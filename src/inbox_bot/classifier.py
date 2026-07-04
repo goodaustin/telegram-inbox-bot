@@ -42,6 +42,15 @@ _OPENAI_TOOL: dict[str, Any] = {
 }
 
 
+def _make_client(settings: Settings) -> AsyncOpenAI:
+    if settings.classifier_provider == "gemini":
+        return AsyncOpenAI(
+            api_key=settings.gemini_api_key,
+            base_url=settings.gemini_base_url,
+        )
+    return AsyncOpenAI(api_key=settings.openai_api_key)
+
+
 def _load_system_prompt() -> str:
     return resources.files("inbox_bot.prompts").joinpath("classify.md").read_text(encoding="utf-8")
 
@@ -69,7 +78,7 @@ async def classify(
     client: AsyncOpenAI | None = None,
 ) -> ClassifierResult:
     if client is None:
-        client = AsyncOpenAI(api_key=settings.openai_api_key)
+        client = _make_client(settings)
 
     system = _load_system_prompt()
     content = _build_content(image_bytes, text)
