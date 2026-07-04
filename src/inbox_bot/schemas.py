@@ -18,7 +18,7 @@ CATEGORY_FIELD_SCHEMAS: dict[Category, list[str]] = {
     "restaurant": ["name", "city", "cuisine", "notes"],
     "place":      ["name", "city", "type", "notes"],
     "todo":       ["task", "notes"],
-    "article":    ["title", "url", "publisher", "summary"],
+    "article":    ["title", "url", "publisher", "summary", "type"],
     "quote":      ["quote", "author", "tags"],
     "apparel":    ["item", "brand", "type", "price", "url", "notes"],
     "skincare":   ["product", "brand", "category", "price", "url", "notes"],

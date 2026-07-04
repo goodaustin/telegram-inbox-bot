@@ -115,6 +115,7 @@ def build_properties(
             "Title": _title(g("title", "")),
             "URL": _url(g("url", "")),
             "Publisher": _text(g("publisher", "")),
+            "Type": _select(g("type", "文章")),
             "Summary": _text(g("summary", "")),
             "Read?": _checkbox(False),
             "Source": _url(telegram_url),

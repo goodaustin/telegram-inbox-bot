@@ -88,14 +88,14 @@ def format_digest(
         lines.append("\n✨ 沒有待辦事項")
 
     if articles:
-        lines.append(f"\n📖 待讀 ({len(articles)} 篇)")
+        lines.append(f"\n📖 待讀待看 ({len(articles)} 篇)")
         for a in articles[:5]:
             pub = f"({a['publisher']})" if a["publisher"] else ""
             lines.append(f"• 「{a['title']}」{pub}")
         if len(articles) > 5:
             lines.append(f"   👉 全部: https://www.notion.so/{articles_db_id.replace('-', '')}")
     else:
-        lines.append("\n📭 沒有待讀文章")
+        lines.append("\n📭 沒有待讀待看")
 
     return "\n".join(lines)
 

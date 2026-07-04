@@ -41,3 +41,9 @@ def test_inbox_schema_is_minimal():
 def test_restaurant_schema_has_expected_fields():
     assert "name" in CATEGORY_FIELD_SCHEMAS["restaurant"]
     assert "city" in CATEGORY_FIELD_SCHEMAS["restaurant"]
+
+
+def test_article_schema_includes_type():
+    assert CATEGORY_FIELD_SCHEMAS["article"] == [
+        "title", "url", "publisher", "summary", "type"
+    ]

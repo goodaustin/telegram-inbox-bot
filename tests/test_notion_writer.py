@@ -128,6 +128,27 @@ def test_build_properties_article_smoke():
     assert props["Read?"]["checkbox"] is False
 
 
+def test_build_properties_article_has_type_select():
+    now = datetime(2026, 7, 4, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="article",
+        fields={"title": "某影片", "url": "https://youtu.be/x",
+                "publisher": "某頻道", "summary": "s", "type": "影片"},
+        telegram_url="https://t.me/c/1/2", maps_link=None, now=now,
+    )
+    assert props["Type"]["select"]["name"] == "影片"
+
+
+def test_build_properties_article_type_defaults_to_文章():
+    now = datetime(2026, 7, 4, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="article",
+        fields={"title": "X", "url": "", "publisher": "", "summary": ""},
+        telegram_url="https://t.me/c/1/2", maps_link=None, now=now,
+    )
+    assert props["Type"]["select"]["name"] == "文章"
+
+
 def test_build_properties_quote_smoke():
     now = datetime(2026, 6, 28, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
     props = build_properties(

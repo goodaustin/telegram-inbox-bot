@@ -38,7 +38,7 @@ def test_format_digest_separates_overdue_and_this_week():
     assert "預約洗牙" in msg
     assert "本週到期 (2)" in msg
     assert "訂端午高鐵" in msg
-    assert "待讀 (2 篇)" in msg
+    assert "待讀待看 (2 篇)" in msg
     assert "LLM 推論成本" in msg
     assert "週日" in msg
 
