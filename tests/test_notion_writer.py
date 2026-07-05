@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 from zoneinfo import ZoneInfo
 import pytest
+import inbox_bot.notion_writer as nw
 from inbox_bot.notion_writer import (
     build_maps_link, build_telegram_url, build_properties, write_to_notion,
     NotionWriteError,
@@ -294,3 +295,26 @@ async def test_write_to_notion_after_all_retries_appends_to_jsonl(
     assert record["category"] == "quote"
     assert record["telegram_url"] == "https://t.me/c/1/2"
     assert "error" in record
+
+
+def test_custom_category_uses_standard_fields(monkeypatch):
+    monkeypatch.setattr(nw, "custom_category_keys", lambda customs=None: {"recipe"})
+    now = datetime(2026, 7, 5, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="recipe",
+        fields={"name": "番茄炒蛋", "notes": "簡單", "tags": ["家常", "蛋"]},
+        telegram_url="https://t.me/c/1/2",
+        maps_link=None,
+        now=now,
+    )
+    assert set(props) == {"Name", "Notes", "Tags", "Source", "Date Added"}
+    assert props["Name"]["title"][0]["text"]["content"] == "番茄炒蛋"
+    assert [t["name"] for t in props["Tags"]["multi_select"]] == ["家常", "蛋"]
+    assert props["Source"]["url"] == "https://t.me/c/1/2"
+
+
+def test_unknown_noncustom_category_still_inbox_fallback(monkeypatch):
+    monkeypatch.setattr(nw, "custom_category_keys", lambda customs=None: set())
+    now = datetime(2026, 7, 5, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties("mystery", {"reason": "x"}, "u", None, now)
+    assert "Raw Text" in props  # inbox schema

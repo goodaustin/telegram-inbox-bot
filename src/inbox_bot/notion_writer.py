@@ -7,6 +7,7 @@ from typing import Any
 from urllib.parse import urlencode, quote
 from zoneinfo import ZoneInfo
 from notion_client import AsyncClient
+from inbox_bot.categories import custom_category_keys
 from inbox_bot.config import Settings, db_id_for_category
 from inbox_bot.schemas import ClassifierResult
 
@@ -164,6 +165,14 @@ def build_properties(
             "Name": _title(g("caption", "")),
             "Tags": _multi(g("tags") or []),
             "Notes": _text(g("notes", "")),
+            "Source": _url(telegram_url),
+            "Date Added": _date(now),
+        }
+    if category in custom_category_keys():
+        return {
+            "Name": _title(g("name", "")),
+            "Notes": _text(g("notes", "")),
+            "Tags": _multi(g("tags") or []),
             "Source": _url(telegram_url),
             "Date Added": _date(now),
         }
