@@ -201,6 +201,25 @@ def test_build_properties_skincare_smoke():
     assert props["Price"]["number"] == 1500.0
 
 
+async def test_write_drops_null_valued_fields_from_model(settings):
+    # Gemini JSON mode emits explicit nulls for empty fields; they must not reach
+    # _select/_title/_text (None[:n] → 'NoneType' object is not subscriptable).
+    client = MagicMock()
+    client.pages.create = AsyncMock(return_value={"id": "p", "url": "https://notion.so/p"})
+    result = ClassifierResult(
+        category="restaurant", confidence=0.9, raw_text="x",
+        fields={"name": "鼎泰豐", "city": None, "cuisine": None, "notes": None},
+    )
+    url = await write_to_notion(
+        result=result, telegram_message_url="https://t.me/c/1/2",
+        image_bytes=None, settings=settings, client=client,
+    )
+    assert url == "https://notion.so/p"
+    props = client.pages.create.call_args.kwargs["properties"]
+    # null city fell back to the default select value, not None
+    assert props["City/Area"]["select"]["name"] == "未知"
+
+
 async def test_write_to_notion_dispatches_to_correct_db(settings):
     client = MagicMock()
     client.pages.create = AsyncMock(return_value={"id": "page_x", "url": "https://notion.so/page_x"})

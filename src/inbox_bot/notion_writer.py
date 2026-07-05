@@ -196,8 +196,11 @@ async def write_to_notion(
             result.fields.get("city", ""),
         )
 
+    # Drop null-valued fields (Gemini's JSON mode emits explicit nulls for empty
+    # fields) so build_properties' per-category defaults apply instead of passing
+    # None into _select/_title/_text (which do value[:n] → TypeError).
+    fields = {k: v for k, v in result.fields.items() if v is not None}
     # inbox fallback needs raw_text in fields so build_properties can title it
-    fields = dict(result.fields)
     if result.category == "inbox":
         fields.setdefault("raw_text", result.raw_text)
 
