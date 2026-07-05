@@ -119,3 +119,25 @@ def test_extra_notion_db_env_does_not_break_settings(fake_env, monkeypatch):
     monkeypatch.setenv("NOTION_DB_RECIPE", "db_recipe")
     s = Settings()  # must not raise on the extra env var
     assert s.notion_db_inbox == "db_inbox"
+
+
+def test_get_settings_resolves_custom_db_id_from_dotenv(tmp_path, monkeypatch):
+    from inbox_bot.config import get_settings
+    monkeypatch.delenv("NOTION_DB_RECIPE", raising=False)
+    lines = [
+        "TELEGRAM_BOT_TOKEN=123:abc", "TELEGRAM_CHANNEL_ID=-1001234567890",
+        "OPENAI_API_KEY=sk-x", "NOTION_TOKEN=ntn_x",
+        "NOTION_DB_RESTAURANT=r", "NOTION_DB_PLACE=p", "NOTION_DB_TODO=t",
+        "NOTION_DB_ARTICLE=a", "NOTION_DB_QUOTE=q", "NOTION_DB_APPAREL=ap",
+        "NOTION_DB_SKINCARE=s", "NOTION_DB_PHOTO=ph", "NOTION_DB_FUNNY=f",
+        "NOTION_DB_INBOX=i", "NOTION_DB_RECIPE=recipe_from_dotenv",
+    ]
+    (tmp_path / ".env").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    get_settings.cache_clear()
+    try:
+        s = get_settings()
+        from inbox_bot.config import db_id_for_category
+        assert db_id_for_category("recipe", s) == "recipe_from_dotenv"
+    finally:
+        get_settings.cache_clear()

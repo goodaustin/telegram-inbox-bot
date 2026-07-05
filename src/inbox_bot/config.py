@@ -1,6 +1,7 @@
 import logging
 import os
 from functools import lru_cache
+from dotenv import find_dotenv, load_dotenv
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -55,6 +56,12 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    # Populate os.environ from .env so custom-category ids (NOTION_DB_<KEY>,
+    # read via os.environ in db_id_for_category) resolve at runtime. pydantic's
+    # env_file only fills the model, not os.environ. usecwd=True mirrors
+    # pydantic-settings' env_file=".env", which is resolved relative to cwd
+    # (default find_dotenv() instead walks up from this module's file location).
+    load_dotenv(find_dotenv(usecwd=True))
     return Settings()
 
 
