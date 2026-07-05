@@ -91,3 +91,31 @@ def test_gemini_provider_valid_without_openai_key(fake_env, monkeypatch):
     s = Settings(_env_file=None)
     assert s.classifier_provider == "gemini"
     assert s.gemini_api_key == "gm-x"
+
+
+def test_digest_enabled_defaults_true(fake_env, monkeypatch):
+    monkeypatch.delenv("DIGEST_ENABLED", raising=False)
+    assert Settings(_env_file=None).digest_enabled is True
+
+
+def test_digest_enabled_false_from_env(fake_env, monkeypatch):
+    monkeypatch.setenv("DIGEST_ENABLED", "false")
+    assert Settings(_env_file=None).digest_enabled is False
+
+
+def test_db_id_for_custom_category_reads_env(fake_env, monkeypatch):
+    monkeypatch.setenv("NOTION_DB_RECIPE", "db_recipe")
+    s = Settings()
+    assert db_id_for_category("recipe", s) == "db_recipe"
+
+
+def test_db_id_for_custom_without_env_falls_back_to_inbox(fake_env, monkeypatch):
+    monkeypatch.delenv("NOTION_DB_RECIPE", raising=False)
+    s = Settings()
+    assert db_id_for_category("recipe", s) == "db_inbox"
+
+
+def test_extra_notion_db_env_does_not_break_settings(fake_env, monkeypatch):
+    monkeypatch.setenv("NOTION_DB_RECIPE", "db_recipe")
+    s = Settings()  # must not raise on the extra env var
+    assert s.notion_db_inbox == "db_inbox"

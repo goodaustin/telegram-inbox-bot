@@ -1,11 +1,16 @@
+import logging
+import os
 from functools import lru_cache
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+log = logging.getLogger(__name__)
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", case_sensitive=False
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=False,
+        extra="ignore",
     )
 
     telegram_bot_token: str
@@ -33,6 +38,7 @@ class Settings(BaseSettings):
     timezone: str = "Asia/Taipei"
     digest_hour: int = 7
     digest_minute: int = 30
+    digest_enabled: bool = True
 
     @model_validator(mode="after")
     def _check_provider_key(self) -> "Settings":
@@ -67,5 +73,12 @@ _CATEGORY_TO_ATTR = {
 
 
 def db_id_for_category(category: str, settings: Settings) -> str:
-    attr = _CATEGORY_TO_ATTR.get(category, "notion_db_inbox")
-    return getattr(settings, attr)
+    attr = _CATEGORY_TO_ATTR.get(category)
+    if attr is not None:
+        return getattr(settings, attr)
+    # custom category → env var NOTION_DB_<KEY>
+    val = os.environ.get(f"NOTION_DB_{category.upper()}")
+    if val:
+        return val
+    log.warning("no NOTION_DB id for category %r; routing to inbox", category)
+    return settings.notion_db_inbox
