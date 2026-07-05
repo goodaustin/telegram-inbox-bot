@@ -106,10 +106,10 @@ git --version
 
 ### 方式 A：用網址下載（如果 Shao 有給你一個 REPO 網址）
 
-> ⚠️ **REPO 網址目前未知——請向 Shao 索取。** 他會給你一串像 `https://github.com/xxx/telegram-inbox-bot.git` 的網址，把下面指令裡的 `<REPO_URL>` 換成那串。
+> 程式碼放在公開的 GitHub repo，直接照下面指令 clone 即可（不需登入）。
 
 ```bash
-git clone <REPO_URL> ~/telegram-inbox-bot
+git clone https://github.com/goodaustin/telegram-inbox-bot.git ~/telegram-inbox-bot
 ```
 
 **你會看到什麼：** 一段 `Cloning into ...`、進度百分比跑完，回到可打字狀態。你的家目錄下就多了一個 `telegram-inbox-bot` 資料夾。
