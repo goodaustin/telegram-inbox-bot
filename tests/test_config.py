@@ -38,7 +38,7 @@ def test_settings_defaults(fake_env, monkeypatch):
     monkeypatch.delenv("CLASSIFIER_MODEL", raising=False)
     s = Settings(_env_file=None)
     assert s.classifier_model == "gpt-4.1-mini"
-    assert s.confidence_threshold == 0.6
+    assert s.confidence_threshold == 0.5
     assert s.timezone == "Asia/Taipei"
     assert s.digest_hour == 7
     assert s.digest_minute == 30

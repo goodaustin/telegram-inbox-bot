@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
     classifier_model: str = "gpt-4.1-mini"
-    confidence_threshold: float = 0.6
+    confidence_threshold: float = 0.5
     timezone: str = "Asia/Taipei"
     digest_hour: int = 7
     digest_minute: int = 30
