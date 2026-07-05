@@ -201,7 +201,7 @@ TELEGRAM_BOT_TOKEN=剛剛 BotFather 給的
 TELEGRAM_CHANNEL_ID=（第 6 步用腳本抓）
 OPENAI_API_KEY=
 CLASSIFIER_PROVIDER=gemini
-GEMINI_API_KEY=（第 9 步取得）
+GEMINI_API_KEY=（第 10 步取得）
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
 CLASSIFIER_MODEL=gemini-2.5-flash
 NOTION_TOKEN=（第 7 步取得）
@@ -465,6 +465,7 @@ for i in 1 2 3; do
   echo "第 $i 次失敗，2 秒後重試…"
   sleep 2
 done
+echo "若上面三次都失敗，請看下方的「如果三次都失敗、或 launchctl list 找不到 → 這樣解」"
 
 echo "目前狀態："
 launchctl list | grep telegram-inbox || echo "  （沒找到——請檢查 $PLIST 內容與路徑）"
@@ -503,6 +504,6 @@ launchctl list | grep telegram-inbox || echo "  （沒找到——請檢查 $PLI
 - [ ] 「待辦」表格有 `Status` 欄位、選項是預設的 `Not started/In progress/Done`
 - [ ] 冒煙測試（第 11 步）：頻道貼截圖 → 機器人回覆 + Notion 有新資料
 - [ ] launchd 已載入（`launchctl list | grep telegram-inbox` 有一列）
-- [ ] Mac 設定成不睡眠、長時間開機
+- [ ] Mac 設定成不睡眠、長時間開機（設定方式：系統設定 → 鎖定畫面 / 螢幕保護程式 → 把「電腦在閒置時進入睡眠」關閉或設為「永不」）
 
 全部打勾就大功告成了！有任何一步卡住，把終端機上的錯誤訊息截圖給 Shao 最快。
