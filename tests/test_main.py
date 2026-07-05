@@ -1,12 +1,11 @@
+from unittest.mock import MagicMock
+from types import SimpleNamespace
+from inbox_bot.main import register_digest_job
+
+
 def test_main_module_imports():
     from inbox_bot import main
     assert callable(main.main)
-
-
-from unittest.mock import MagicMock
-from types import SimpleNamespace
-from zoneinfo import ZoneInfo
-from inbox_bot.main import register_digest_job
 
 
 def _settings(enabled: bool):
