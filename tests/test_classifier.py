@@ -259,3 +259,33 @@ async def test_gemini_strips_code_fences(gemini_settings):
     result = await classify(image_bytes=None, text="x",
                             settings=gemini_settings, client=client)
     assert result.category == "quote"
+
+
+from inbox_bot.classifier import _build_openai_tool, _json_instruction
+
+
+def test_build_openai_tool_uses_given_keys():
+    tool = _build_openai_tool(["todo", "recipe"])
+    enum = tool["function"]["parameters"]["properties"]["category"]["enum"]
+    assert enum == ["todo", "recipe"]
+
+
+def test_json_instruction_lists_keys():
+    instr = _json_instruction(["todo", "recipe"])
+    assert "todo" in instr and "recipe" in instr
+
+
+async def test_classify_accepts_custom_category(settings, monkeypatch):
+    # patch the single source (get_custom_categories) so the enum, the prompt
+    # section, AND ClassifierResult validation all see the custom key.
+    import inbox_bot.categories as cats
+    from inbox_bot.categories import CustomCategory
+    monkeypatch.setattr(cats, "get_custom_categories",
+                        lambda: [CustomCategory("recipe", "食譜", "食譜、料理")])
+    client = make_mock_client({
+        "category": "recipe", "confidence": 0.9,
+        "raw_text": "番茄炒蛋做法", "fields": {"name": "番茄炒蛋", "notes": "", "tags": []},
+    })
+    result = await classify(image_bytes=None, text="番茄炒蛋做法", settings=settings, client=client)
+    assert result.category == "recipe"
+    assert result.fields["name"] == "番茄炒蛋"

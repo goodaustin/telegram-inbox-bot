@@ -6,6 +6,7 @@ from importlib import resources
 from typing import Any
 from urllib.parse import urlparse
 from openai import AsyncOpenAI
+from inbox_bot.categories import all_category_keys, render_custom_prompt_section
 from inbox_bot.config import Settings
 from inbox_bot.schemas import ClassifierResult
 
@@ -30,16 +31,6 @@ CLASSIFY_TOOL: dict[str, Any] = {
             "raw_text": {"type": "string"},
             "fields": {"type": "object"},
         },
-    },
-}
-
-# OpenAI function-calling wrapper around CLASSIFY_TOOL's schema.
-_OPENAI_TOOL: dict[str, Any] = {
-    "type": "function",
-    "function": {
-        "name": CLASSIFY_TOOL["name"],
-        "description": CLASSIFY_TOOL["description"],
-        "parameters": CLASSIFY_TOOL["input_schema"],
     },
 }
 
@@ -72,24 +63,43 @@ def _build_content(image_bytes: bytes | None, text: str | None) -> list[dict[str
     return parts
 
 
-_CATEGORY_ENUM = CLASSIFY_TOOL["input_schema"]["properties"]["category"]["enum"]
-
 # raw_text carries the full OCR of an image, so the response can be long; too low a
 # cap truncates the JSON mid-string (JSONDecodeError "Unterminated string").
 _MAX_TOKENS = 4096
 
-# Gemini's OpenAI-compat endpoint doesn't reliably honor forced tool_choice, so
-# that provider gets a JSON-mode path instead of function calling. This instruction
-# is appended to the system prompt so the model emits exactly the expected shape.
-_JSON_INSTRUCTION = (
-    "\n\n---\n"
-    "Return ONLY a single JSON object — no markdown, no code fences, no prose — "
-    "with exactly these keys:\n"
-    '- "category": one of ' + ", ".join(_CATEGORY_ENUM) + "\n"
-    '- "confidence": a number from 0 to 1\n'
-    '- "raw_text": a string (OCR of the image, or echo of the input text)\n'
-    '- "fields": a JSON object holding the extracted fields for that category\n'
-)
+
+def _build_openai_tool(keys: list[str]) -> dict[str, Any]:
+    schema = {
+        "type": "object",
+        "required": ["category", "confidence", "raw_text", "fields"],
+        "properties": {
+            "category": {"type": "string", "enum": keys},
+            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+            "raw_text": {"type": "string"},
+            "fields": {"type": "object"},
+        },
+    }
+    return {"type": "function", "function": {
+        "name": "classify_item",
+        "description": CLASSIFY_TOOL["description"],
+        "parameters": schema,
+    }}
+
+
+def _json_instruction(keys: list[str]) -> str:
+    # Gemini's OpenAI-compat endpoint doesn't reliably honor forced tool_choice, so
+    # that provider gets a JSON-mode path instead of function calling. This
+    # instruction is appended to the system prompt so the model emits exactly the
+    # expected shape.
+    return (
+        "\n\n---\n"
+        "Return ONLY a single JSON object — no markdown, no code fences, no prose — "
+        "with exactly these keys:\n"
+        '- "category": one of ' + ", ".join(keys) + "\n"
+        '- "confidence": a number from 0 to 1\n'
+        '- "raw_text": a string (OCR of the image, or echo of the input text)\n'
+        '- "fields": a JSON object holding the extracted fields for that category\n'
+    )
 
 
 def _strip_fences(raw: str) -> str:
@@ -107,6 +117,7 @@ async def _request_args(
     settings: Settings,
     system: str,
     content: list[dict[str, Any]],
+    keys: list[str],
 ) -> dict[str, Any]:
     """Call the model and return the raw classification args dict.
 
@@ -119,7 +130,7 @@ async def _request_args(
             model=settings.classifier_model,
             max_tokens=_MAX_TOKENS,
             messages=[
-                {"role": "system", "content": system + _JSON_INSTRUCTION},
+                {"role": "system", "content": system + _json_instruction(keys)},
                 {"role": "user", "content": content},
             ],
             response_format={"type": "json_object"},
@@ -136,7 +147,7 @@ async def _request_args(
             {"role": "system", "content": system},
             {"role": "user", "content": content},
         ],
-        tools=[_OPENAI_TOOL],
+        tools=[_build_openai_tool(keys)],
         tool_choice={"type": "function", "function": {"name": "classify_item"}},
     )
     tool_calls = resp.choices[0].message.tool_calls
@@ -192,13 +203,14 @@ async def classify(
     if client is None:
         client = _make_client(settings)
 
-    system = _load_system_prompt()
+    keys = all_category_keys()
+    system = _load_system_prompt() + render_custom_prompt_section()
     content = _build_content(image_bytes, text)
 
     last_err: Exception | None = None
     for attempt in (1, 2):
         try:
-            args = await _request_args(client, settings, system, content)
+            args = await _request_args(client, settings, system, content, keys)
             result = ClassifierResult(**args)
             if result.confidence < settings.confidence_threshold:
                 return ClassifierResult(
