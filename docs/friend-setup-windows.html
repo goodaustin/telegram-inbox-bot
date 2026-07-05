@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telegram Inbox Bot — Windows 11 安裝指南（給朋友版）</title>
+<style>
+  :root {
+    --bg: #fdfcf9;
+    --text: #24292e;
+    --muted: #5b6270;
+    --border: #e2e0da;
+    --card-bg: #ffffff;
+    --cmd-bg: #f4f3ee;
+    --cmd-border: #d8d5cc;
+    --tip-bg: #eaf3fb;
+    --tip-border: #a9cdea;
+    --tip-text: #14496e;
+    --warn-bg: #fdf1e6;
+    --warn-border: #eec192;
+    --warn-text: #7a4a10;
+    --success-bg: #eaf7ee;
+    --success-border: #a6dbb6;
+    --success-text: #1f6b3a;
+    --accent: #2d6ca8;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1d21;
+      --text: #eaeaea;
+      --muted: #a8adb8;
+      --border: #3a3c42;
+      --card-bg: #26272c;
+      --cmd-bg: #17181b;
+      --cmd-border: #3a3c42;
+      --tip-bg: #10293c;
+      --tip-border: #2c5a80;
+      --tip-text: #bfe0ff;
+      --warn-bg: #3a2712;
+      --warn-border: #85591c;
+      --warn-text: #ffcf94;
+      --success-bg: #10301c;
+      --success-border: #2f7a4c;
+      --success-text: #a7e6bd;
+      --accent: #6fb0e6;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    padding: 2.5rem 1.25rem 6rem;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", "Microsoft JhengHei", "PingFang TC", "Noto Sans TC",
+                 -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 17px;
+    line-height: 1.85;
+  }
+
+  .page {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  header.title-block {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 3px solid var(--accent);
+  }
+
+  header.title-block h1 {
+    font-size: 2.1em;
+    margin: 0 0 0.4em;
+    color: var(--accent);
+  }
+
+  header.title-block p.subtitle {
+    margin: 0;
+    font-size: 1.15em;
+    color: var(--muted);
+  }
+
+  h1, h2, h3, h4 { line-height: 1.4; }
+
+  h2 {
+    font-size: 1.65em;
+    margin-top: 3rem;
+    padding: 0.5rem 0.9rem;
+    background: var(--card-bg);
+    border-left: 6px solid var(--accent);
+    border-radius: 4px;
+  }
+
+  h3 {
+    font-size: 1.28em;
+    margin-top: 2rem;
+    color: var(--accent);
+  }
+
+  p { margin: 0.9em 0; }
+
+  ul, ol {
+    padding-left: 1.6em;
+  }
+
+  li { margin: 0.4em 0; }
+
+  hr {
+    border: none;
+    border-top: 2px dashed var(--border);
+    margin: 2.5rem 0;
+  }
+
+  code {
+    font-family: "SFMono-Regular", Consolas, "Cascadia Code", Menlo, monospace;
+    background: var(--cmd-bg);
+    border: 1px solid var(--cmd-border);
+    border-radius: 3px;
+    padding: 0.1em 0.4em;
+    font-size: 0.92em;
+  }
+
+  pre.cmd {
+    font-family: "SFMono-Regular", Consolas, "Cascadia Code", Menlo, monospace;
+    background: var(--cmd-bg);
+    border: 1px solid var(--cmd-border);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 0.9em 1.1em;
+    overflow-x: auto;
+    font-size: 0.92em;
+    line-height: 1.6;
+    margin: 0.9em 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  pre.cmd code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 1em;
+  }
+
+  pre.envblock {
+    font-family: "SFMono-Regular", Consolas, "Cascadia Code", Menlo, monospace;
+    background: var(--cmd-bg);
+    border: 1px solid var(--cmd-border);
+    border-radius: 6px;
+    padding: 1em 1.2em;
+    overflow-x: auto;
+    font-size: 0.88em;
+    line-height: 1.7;
+    margin: 0.9em 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .step {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.1em 1.4em;
+    margin: 1.4em 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .step > h3:first-child,
+  .step > p.step-title:first-child {
+    margin-top: 0;
+  }
+
+  .step-title {
+    font-weight: 700;
+    font-size: 1.1em;
+    color: var(--accent);
+    margin-bottom: 0.6em;
+  }
+
+  .callout {
+    border-radius: 8px;
+    padding: 0.9em 1.2em;
+    margin: 1.1em 0;
+    border: 1px solid;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .callout p { margin: 0.5em 0; }
+  .callout p:first-child { margin-top: 0; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .callout-title {
+    font-weight: 700;
+    margin-bottom: 0.4em;
+  }
+
+  .callout.tip {
+    background: var(--tip-bg);
+    border-color: var(--tip-border);
+    color: var(--tip-text);
+  }
+  .callout.tip pre.cmd, .callout.warn pre.cmd, .callout.success pre.cmd {
+    color: var(--text);
+  }
+
+  .callout.warn {
+    background: var(--warn-bg);
+    border-color: var(--warn-border);
+    color: var(--warn-text);
+  }
+
+  .callout.success {
+    background: var(--success-bg);
+    border-color: var(--success-border);
+    color: var(--success-text);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2em 0;
+    font-size: 0.92em;
+  }
+
+  th, td {
+    border: 1px solid var(--border);
+    padding: 0.6em 0.7em;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--card-bg);
+    color: var(--accent);
+  }
+
+  ul.checklist {
+    list-style: none;
+    padding-left: 0.2em;
+  }
+
+  ul.checklist li {
+    padding-left: 1.8em;
+    position: relative;
+    margin: 0.6em 0;
+  }
+
+  ul.checklist li::before {
+    content: "\2610";
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 1.2em;
+    color: var(--accent);
+  }
+
+  .prep-list {
+    list-style: none;
+    padding-left: 0.2em;
+  }
+  .prep-list li {
+    padding-left: 1.8em;
+    position: relative;
+    margin: 0.6em 0;
+  }
+  .prep-list li::before {
+    content: "\2610";
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 1.2em;
+    color: var(--accent);
+  }
+
+  footer.closing {
+    text-align: center;
+    margin-top: 3rem;
+    color: var(--muted);
+    font-size: 0.95em;
+  }
+
+  @media print {
+    body {
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-size: 12.5pt;
+      padding: 0;
+    }
+    .page { max-width: 100%; }
+    @page {
+      size: A4;
+      margin: 1.6cm;
+    }
+    h2 {
+      background: none !important;
+      border-left: 4px solid #000 !important;
+      color: #000 !important;
+      break-before: page;
+    }
+    h2:first-of-type { break-before: avoid; }
+    h3 { color: #000 !important; }
+    .step {
+      background: #ffffff !important;
+      border: 1px solid #999 !important;
+      break-inside: avoid;
+    }
+    .callout {
+      break-inside: avoid;
+      border: 1px solid #666 !important;
+      background: #ffffff !important;
+      color: #000 !important;
+    }
+    .callout-title, .callout.tip, .callout.warn, .callout.success {
+      color: #000 !important;
+    }
+    pre.cmd, pre.envblock, code {
+      background: #f0f0f0 !important;
+      border: 1px solid #999 !important;
+      color: #000 !important;
+    }
+    a { color: #000 !important; text-decoration: underline; }
+    table, th, td { border-color: #666 !important; }
+    th { background: #eee !important; color: #000 !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="title-block">
+  <h1>Telegram Inbox Bot</h1>
+  <p class="subtitle">Windows 11 安裝指南（給朋友版）</p>
+</header>
+
+<p>這份文件會帶你一步一步，把一個「自動整理機器人」裝到你的 Windows 11 電腦上。
+<strong>你不需要任何程式背景</strong>，照著抄就好；每一步都會告訴你要貼什麼指令、以及「成功的話你會看到什麼」。Shao 會在旁邊陪你，卡住隨時喊。</p>
+
+<div class="callout tip">
+  <p class="callout-title">💡 小提示</p>
+  <p>文件裡凡是灰底的方框（像下面這種）都是「指令」，請整段複製、貼到終端機、按 Enter。</p>
+  <pre class="cmd"><code>這是一段指令</code></pre>
+</div>
+
+<hr>
+
+<h2 id="s0">0. 這是什麼／你要準備什麼</h2>
+
+<p><strong>這個機器人在做什麼？</strong><br>
+你在 Telegram 一個「只有你自己的頻道」裡貼東西（截圖、網址、一句話、餐廳名⋯⋯），機器人會自動判斷這是哪一類（餐廳？待辦？想讀的文章？），然後幫你分門別類存進 Notion 的表格裡，並在原訊息下面回你一個 emoji ✅ 和一條 Notion 連結。<strong>成品就是：你在頻道貼截圖 → 它自動歸檔到 Notion。</strong></p>
+
+<p><strong>這些名詞先認識一下（後面第一次用到會再解釋一次）：</strong></p>
+<ul>
+  <li><strong>Telegram</strong>：一款通訊 App，跟 LINE 類似，但可以放「機器人」。</li>
+  <li><strong>Notion</strong>：一個做筆記／資料庫的網站 App，我們用它當「儲存櫃」。</li>
+  <li><strong>終端機（Terminal）</strong>：Windows 內建的一個「打指令的黑框框」程式，等一下大部分步驟都在這裡貼指令。</li>
+</ul>
+
+<p><strong>你需要準備：</strong></p>
+<ul class="prep-list">
+  <li>一台 <strong>Windows 11 電腦</strong>，而且它要能「長時間開著、不關機、不睡眠」——因為機器人要一直待命收訊息。（放家裡角落插著電就好。）</li>
+  <li>一個 <strong>Google 帳號</strong>（等一下拿一把免費的 AI 金鑰要用）。</li>
+  <li>一個 <strong>Notion 帳號</strong>（免費方案就夠）。</li>
+  <li>你手機上的 <strong>Telegram</strong> App（用來建機器人和頻道）。</li>
+  <li>大約 <strong>40 分鐘</strong>，加一點耐心。</li>
+</ul>
+
+<p><strong>怎麼打開終端機？</strong><br>
+按 <strong>開始功能表</strong>（螢幕左下角視窗圖示），直接打字輸入「終端機」，會跳出「終端機」App，按 Enter 打開。（也可以按鍵盤的 <code>Win + X</code>，再點選單裡的「終端機」。）會跳出一個黑底、可以打字的視窗——這就是終端機，之後說「貼進終端機」都是指它。</p>
+
+<hr>
+
+<h2 id="s1">1. 裝工具（uv、git）</h2>
+
+<p>我們要先在 Windows 上裝兩樣東西。它們是什麼不重要，你只要知道：<strong>uv</strong> 是「跑這支 Python 機器人的引擎」；<strong>git</strong> 是「下載程式碼的工具」。Windows 11 內建一個叫 <strong>winget</strong> 的「幫你裝其他軟體的軟體」，我們直接用它裝。</p>
+
+<div class="step">
+  <h3>1a. 安裝 uv</h3>
+  <pre class="cmd"><code>winget install --id=astral-sh.uv -e</code></pre>
+  <div class="callout success">
+    <p class="callout-title">✅ 成功長這樣</p>
+    <p>跑一段下載／安裝訊息，最後回到可以打字的狀態、沒有紅色 error。中途如果跳出「使用者帳戶控制」視窗問你要不要允許，點「是」。</p>
+  </div>
+</div>
+
+<div class="step">
+  <h3>1b. 安裝 git</h3>
+  <pre class="cmd"><code>winget install --id=Git.Git -e</code></pre>
+  <div class="callout success">
+    <p class="callout-title">✅ 成功長這樣</p>
+    <p>同樣跑一段安裝訊息，最後回到可打字狀態。</p>
+  </div>
+</div>
+
+<div class="step">
+  <h3>1c. 驗證（重要：先把終端機關掉重開）</h3>
+  <div class="callout warn">
+    <p class="callout-title">⚠️ 警告</p>
+    <p>裝完要把終端機視窗整個關掉、重新打開，剛裝好的工具才會被電腦「認得」（這叫 PATH 更新）。重開後貼：</p>
+  </div>
+  <pre class="cmd"><code>uv --version</code></pre>
+  <pre class="cmd"><code>git --version</code></pre>
+  <div class="callout success">
+    <p class="callout-title">✅ 成功長這樣</p>
+    <p>分別印出像 <code>uv 0.x.x</code>、<code>git version 2.x.x</code> 的版本號。</p>
+  </div>
+  <div class="callout tip">
+    <p class="callout-title">💡 如果 <code>winget</code> 說找不到指令 → 這樣解</p>
+    <p>開啟「Microsoft Store」，搜尋並更新「應用程式安裝程式（App Installer）」，更新完再重試一次上面的 <code>winget install</code>。</p>
+  </div>
+</div>
+
+<hr>
+
+<h2 id="s2">2. 取得程式碼</h2>
+
+<p>我們要把機器人的程式抄一份到你的電腦上。</p>
+
+<pre class="cmd"><code>git clone https://github.com/goodaustin/telegram-inbox-bot.git "$env:USERPROFILE\telegram-inbox-bot"</code></pre>
+
+<div class="callout success">
+  <p class="callout-title">✅ 成功長這樣</p>
+  <p>一段 <code>Cloning into ...</code>、進度百分比跑完，回到可打字狀態。你的使用者資料夾下就多了一個 <code>telegram-inbox-bot</code> 資料夾。</p>
+</div>
+
+<p>進到資料夾裡：</p>
+
+<pre class="cmd"><code>cd "$env:USERPROFILE\telegram-inbox-bot"</code></pre>
+
+<div class="callout success">
+  <p class="callout-title">✅ 成功長這樣</p>
+  <p>沒有任何訊息（沒消息就是好消息）。這代表你「人」已經站在專案資料夾裡了，之後所有指令都要在這個狀態下貼。</p>
+</div>
+
+<div class="callout warn">
+  <p class="callout-title">⚠️ 警告</p>
+  <p>從這裡開始，每次打開新的終端機視窗，都要先貼一次 <code>cd "$env:USERPROFILE\telegram-inbox-bot"</code>，確定自己站對地方。</p>
+  <p><strong>想確認自己站對地方？</strong> 貼 <code>pwd</code>，應該印出結尾是 <code>\telegram-inbox-bot</code> 的路徑。</p>
+</div>
+
+<hr>
+
+<h2 id="s3">3. 建立你的 Telegram 機器人（拿 token）</h2>
+
+<p><strong>token 是什麼？</strong> 就是機器人的「密碼／通行證」，程式要靠它才能用你的機器人身分收發訊息。</p>
+
+<p>步驟（在手機的 Telegram App 裡做）：</p>
+<ol>
+  <li>在 Telegram 搜尋框輸入 <strong><code>@BotFather</code></strong>，點開那個有藍色勾勾的官方帳號。</li>
+  <li>送出 <strong><code>/newbot</code></strong>。</li>
+  <li>它會問機器人的<strong>顯示名稱</strong>（隨便取，例如 <code>我的收納機器人</code>）。</li>
+  <li>再問機器人的<strong>使用者名稱</strong>，這個必須以 <code>bot</code> 結尾（例如 <code>my_inbox_2026_bot</code>）。若說被用過，換一個。</li>
+  <li>成功後，BotFather 會回你一段文字，裡面有一行 <strong>token</strong>，長得像 <code>8123456789:AAG-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code>。</li>
+</ol>
+
+<div class="callout tip">
+  <p class="callout-title">💡 提示</p>
+  <p>先把這串 token 複製起來、貼到你自己的備忘錄暫存，等一下第 5 步要填進設定檔。</p>
+</div>
+
+<div class="callout warn">
+  <p class="callout-title">⚠️ 警告</p>
+  <p>token 不要外流、不要截圖貼到公開群組。誰拿到它就能冒充你的機器人。</p>
+</div>
+
+<hr>
+
+<h2 id="s4">4. 建一個私人頻道，並把機器人設成管理員</h2>
+
+<p><strong>為什麼要頻道？</strong> 機器人會「監看」這個頻道，你貼進去的東西它才收得到。設成管理員它才有權限在你的貼文底下回覆。</p>
+
+<p>步驟（在手機 Telegram 裡）：</p>
+<ol>
+  <li>點右上角的鉛筆／「＋」→ <strong>新建頻道（New Channel）</strong>。</li>
+  <li>取個名字（例如 <code>我的 Inbox</code>），類型選 <strong>Private（私人）</strong>。</li>
+  <li>建好後進入頻道 → 點頻道名稱進<strong>頻道設定</strong> → <strong>Administrators（管理員）</strong> → <strong>Add Admin（新增管理員）</strong>。</li>
+  <li>在搜尋框輸入你剛剛那隻機器人的使用者名稱，點它加入。</li>
+  <li>權限保持預設即可（要確保它有 <strong>Post Messages / 貼文</strong> 的權限，預設就有）。存檔。</li>
+</ol>
+
+<div class="callout success">
+  <p class="callout-title">✅ 成功長這樣</p>
+  <p>頻道的管理員名單裡出現你的機器人名字。</p>
+</div>
+
+<div class="callout warn">
+  <p class="callout-title">⚠️ 警告</p>
+  <p>這步很容易漏：如果沒把機器人設成管理員，它完全收不到你頻道的訊息，後面一定失敗。</p>
+</div>
+
+<hr>
+
+<h2 id="s5">5. 建立設定檔 <code>.env</code>（先填 token）</h2>
+
+<p><strong><code>.env</code> 是什麼？</strong> 就是一個純文字的「設定清單」，裡面放各種金鑰和參數。程式啟動時會去讀它。</p>
+
+<p>先複製一份範本出來（確認你在專案資料夾裡）：</p>
+
+<pre class="cmd"><code>copy .env.example .env</code></pre>
+
+<div class="callout success">
+  <p class="callout-title">✅ 成功長這樣</p>
+  <p>印出 <code>已複製 1 個檔案</code>（或類似訊息）。資料夾裡多了一個 <code>.env</code> 檔。</p>
+</div>
+
+<p>用記事本打開它：</p>
+
+<pre class="cmd"><code>notepad .env</code></pre>
+
+<div class="callout success">
+  <p class="callout-title">✅ 成功長這樣</p>
+  <p>跳出「記事本」程式，顯示一堆 <code>名稱=值</code> 的行。</p>
+</div>
+
+<p><strong>現在，先只填一個東西</strong>——把你第 3 步拿到的 token，填到 <code>TELEGRAM_BOT_TOKEN=</code> 後面（等號後面直接接，不要留空格、不要加引號）：</p>
+
+<pre class="cmd"><code>TELEGRAM_BOT_TOKEN=8123456789:AAG-你的真實token</code></pre>
+
+<p>其餘欄位等一下會一步一步回來填。<strong>改完記得存檔</strong>（<code>Ctrl + S</code>）。</p>
+
+<p>下面是你<strong>最終</strong>這份 <code>.env</code> 大概會長的樣子（現在還不用全填，貼出來讓你心裡有底）。注意這是<strong>朋友版（用 Gemini 當分類器）</strong>，所以 <code>CLASSIFIER_PROVIDER=gemini</code>、<code>CLASSIFIER_MODEL=gemini-2.5-flash</code>，<strong><code>OPENAI_API_KEY</code> 這行留空就好</strong>，而且 <code>DIGEST_ENABLED=false</code>：</p>
+
+<pre class="envblock"><code>TELEGRAM_BOT_TOKEN=剛剛 BotFather 給的
+TELEGRAM_CHANNEL_ID=（第 6 步用腳本抓）
+OPENAI_API_KEY=
+CLASSIFIER_PROVIDER=gemini
+GEMINI_API_KEY=（第 10 步取得）
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+CLASSIFIER_MODEL=gemini-2.5-flash
+NOTION_TOKEN=（第 7 步取得）
+NOTION_DB_RESTAURANT=（第 8 步腳本產生）
+NOTION_DB_PLACE=（第 8 步腳本產生）
+NOTION_DB_TODO=（第 8 步腳本產生）
+NOTION_DB_ARTICLE=（第 8 步腳本產生）
+NOTION_DB_QUOTE=（第 8 步腳本產生）
+NOTION_DB_APPAREL=（第 8 步腳本產生）
+NOTION_DB_SKINCARE=（第 8 步腳本產生）
+NOTION_DB_PHOTO=（第 8 步腳本產生）
+NOTION_DB_FUNNY=（第 8 步腳本產生）
+NOTION_DB_INBOX=（第 8 步腳本產生）
+CONFIDENCE_THRESHOLD=0.5
+TIMEZONE=Asia/Taipei
+DIGEST_ENABLED=false</code></pre>
+
+<div class="callout warn">
+  <p class="callout-title">⚠️ 警告</p>
+  <p>範本原本是 <code>CLASSIFIER_PROVIDER=openai</code>、有 <code>OPENAI_API_KEY=sk-...</code> 和 <code>DIGEST_ENABLED=true</code>——照上面改掉，把最後一行維持成 <code>DIGEST_ENABLED=false</code> 即可。</p>
+</div>
+
+<p>改完先存檔。現在你的 <code>.env</code> 裡應該至少 token 已填好，這樣才能做下一步。</p>
+
+<hr>
+
+<h2 id="s6">6. 抓「頻道 ID」</h2>
+
+<p><strong>頻道 ID 是什麼？</strong> 是那個頻道的一組數字身分證（長得像 <code>-1001234567890</code>），程式要知道它才知道該監看哪個頻道。我們用一支小腳本自動抓。</p>
+
+<div class="callout warn">
+  <p class="callout-title">⚠️ 警告</p>
+  <p>這一步一定要先做完第 3、4、5 步（token 已填進 <code>.env</code>、機器人已是頻道管理員），否則抓不到。</p>
+</div>
+
+<p>確認你人在專案資料夾（<code>cd "$env:USERPROFILE\telegram-inbox-bot"</code>），然後執行：</p>
+
+<pre class="cmd"><code>uv run python scripts/get_channel_id.py</code></pre>
+
+<div class="callout success">
+  <p class="callout-title">✅ 成功長這樣</p>
+  <p>印出一行 <code>等待中… 請到你的頻道貼任一則訊息（Ctrl+C 可結束）</code>。程式會停在那裡等你。</p>
+</div>
+
+<p>現在<strong>到手機那個頻道，隨便貼一句話</strong>（例如打 <code>test</code> 送出）。</p>
+
+<div class="callout success">
+  <p class="callout-title">✅ 成功長這樣</p>
+  <p>終端機馬上多印出：</p>
+  <pre class="cmd"><code>找到了！頻道標題：'我的 Inbox'
+TELEGRAM_CHANNEL_ID=-1001234567890
+把上面這行貼進 .env。</code></pre>
+</div>
+
+<p>把那行 <code>TELEGRAM_CHANNEL_ID=-100...</code> 複製，貼進 <code>.env</code> 取代原本的 <code>TELEGRAM_CHANNEL_ID=</code> 那行，<strong>存檔</strong>。</p>
+
+<div class="callout tip">
+  <p class="callout-title">💡 如果一直停在「等待中」、貼了訊息也沒反應 → 這樣解</p>
+  <p>十之八九是第 4 步的機器人<strong>沒設成管理員</strong>，或設錯頻道。回去第 4 步檢查。改好後在終端機按 <code>Ctrl+C</code> 停掉腳本，重跑一次。</p>
+</div>
+
+<hr>
+
+<h2 id="s7">7. 建立 Notion Integration + 母頁面</h2>
+
+<p>這一段要在<strong>電腦瀏覽器</strong>裡做。我們要（a）幫程式辦一張「Notion 通行證」，（b）在 Notion 開一個空頁面當「總櫃子」，並允許那張通行證進去。</p>
+
+<div class="step">
+  <h3>7a. 建 Integration，拿 Notion token</h3>
+  <p><strong>Integration 是什麼？</strong> 就是「允許程式存取你 Notion 的授權」，它會給你一串 token（通行證）。</p>
+  <ol>
+    <li>用瀏覽器打開：<strong>https://www.notion.so/my-integrations</strong></li>
+    <li>點 <strong><code>+ New integration</code>（新建）</strong>。</li>
+    <li>取個名字（例如 <code>Inbox Bot</code>），關聯的工作區選你自己的，其他預設。建立。</li>
+    <li>建好後頁面上會有 <strong><code>Internal Integration Token</code></strong>（有時要點 <code>Show</code> 才顯示），是一串 <code>ntn_...</code> 開頭的字。點旁邊複製。</li>
+  </ol>
+  <div class="callout tip">
+    <p class="callout-title">💡 提示</p>
+    <p>把這串貼進 <code>.env</code> 的 <code>NOTION_TOKEN=</code> 後面，存檔。</p>
+  </div>
+</div>
+
+<div class="step">
+  <h3>7b. 建母頁面，並分享給 Integration</h3>
+  <p><strong>母頁面是什麼？</strong> 一個空白 Notion 頁面，等一下腳本會把 10 個表格全部建在它底下，方便集中管理。</p>
+  <ol>
+    <li>在 Notion 左側 <strong><code>+ New page</code></strong> 建一個新頁面，標題隨意（例如 <code>我的 Inbox</code>）。</li>
+    <li>打開這個頁面，點<strong>右上角的 <code>•••</code>（三個點）</strong> → 找到 <strong><code>Connections</code>（連結）／<code>+ Add connections</code></strong> → 選你剛剛建的那個 integration（例如 <code>Inbox Bot</code>）→ 確認 <code>Confirm</code>。</li>
+  </ol>
+  <div class="callout success">
+    <p class="callout-title">✅ 成功長這樣</p>
+    <p>Connections 清單裡出現你的 integration 名字。</p>
+  </div>
+  <div class="callout warn">
+    <p class="callout-title">⚠️ 警告</p>
+    <p>這步（把母頁面分享給 integration）一定要在下一步 provision 之前做完，否則程式沒權限在裡面建表格，會直接失敗。</p>
+  </div>
+</div>
+
+<div class="step">
+  <h3>7c. 複製「母頁面 id」</h3>
+  <p>看瀏覽器上方那條網址，最後面會有一長串英數字（32 個字元，可能中間夾著 <code>-</code>）。那一段就是<strong>母頁面 id</strong>。
+  例如網址 <code>https://www.notion.so/我的-Inbox-1a2b3c4d5e6f7890abcd1234ef567890</code>，其中 <code>1a2b3c4d5e6f7890abcd1234ef567890</code> 就是母頁面 id。<strong>先複製起來</strong>，下一步要用。</p>
+</div>
+
+<hr>
+
+<h2 id="s8">8. 一鍵建立所有表格</h2>
+
+<p>現在用一支腳本，在母頁面底下自動建好 10 個表格。回到終端機（確認在 <code>$env:USERPROFILE\telegram-inbox-bot</code>），把 <code>&lt;母頁面id&gt;</code> 換成你上一步複製的那串：</p>
+
+<pre class="cmd"><code>uv run python scripts/provision_notion.py &lt;母頁面id&gt;</code></pre>
+
+<div class="callout success">
+  <p class="callout-title">✅ 成功長這樣</p>
+  <p>會逐行印出 <code>建立完成：餐廳</code>、<code>建立完成：地點</code>⋯⋯，最後印出一整段：</p>
+  <pre class="cmd"><code># ↓↓↓ 把下面全部貼進 .env ↓↓↓
+NOTION_DB_RESTAURANT=xxxxxxxx...
+NOTION_DB_PLACE=xxxxxxxx...
+... (共 10 行) ...
+NOTION_DB_INBOX=xxxxxxxx...
+
+提醒：到 Notion 的「待辦」DB 手動新增一個 Status 欄位（status 型）。</code></pre>
+</div>
+
+<p><strong>把那 10 行 <code>NOTION_DB_...=...</code> 全部複製，貼進 <code>.env</code></strong>，取代原本那 10 行空的（存檔）。回 Notion 看你的母頁面，底下應該多了 10 個表格（餐廳、地點、待辦、待讀待看、金句、服飾、保養、照片、好笑的東西、Inbox）。</p>
+
+<div class="callout tip">
+  <p class="callout-title">💡 如果出現 <code>找不到 NOTION_TOKEN</code> → 這樣解</p>
+  <p>第 7a 的 token 沒填進 <code>.env</code>，回去補、存檔再重跑。</p>
+</div>
+
+<div class="callout tip">
+  <p class="callout-title">💡 如果出現權限相關的錯誤（unauthorized / could not find page）→ 這樣解</p>
+  <p>第 7b 沒把母頁面分享給 integration，或母頁面 id 複製錯。回去檢查。</p>
+</div>
+
+<hr>
+
+<h2 id="s9">9. 手動幫「待辦」表格加一個 Status 欄位（很重要，別做錯）</h2>
+
+<p><strong>為什麼要手動加？</strong> Notion 的「Status（狀態）」型欄位有個技術限制，剛剛的腳本<strong>沒辦法</strong>自動幫「待辦」建這種欄位，所以要你親手加一個。<strong>沒加的話，之後所有「待辦」類的東西都會存不進去。</strong></p>
+
+<p>在 Notion：</p>
+<ol>
+  <li>打開母頁面底下那個 <strong>「待辦」</strong> 表格。</li>
+  <li>在表格右邊點 <strong><code>+</code>（新增 property／新增欄位）</strong>。</li>
+  <li>欄位名稱打 <strong><code>Status</code></strong>（就是英文 Status，開頭大寫）。</li>
+  <li>型別（Type）選 <strong><code>Status</code></strong>（注意：是狀態型「Status」，不是文字型、不是 Select）。</li>
+  <li>建好後它會自帶三個預設選項：<strong><code>Not started</code>、<code>In progress</code>、<code>Done</code></strong>。<strong>保持原樣就好，什麼都不要改。</strong></li>
+</ol>
+
+<div class="callout warn">
+  <p class="callout-title">⚠️⚠️ 絕對不要把選項改名</p>
+  <p>機器人存待辦時會寫入狀態 <code>Not started</code>。</p>
+  <p>這種 Status 欄位<strong>在寫入時無法自動新建不存在的選項</strong>，所以只要你把 <code>Not started</code> 改名成別的字（例如改成 <code>Todo</code>），機器人一寫就會失敗。<strong>保留 Notion 給你的預設英文選項即可。</strong></p>
+</div>
+
+<div class="callout success">
+  <p class="callout-title">✅ 成功長這樣</p>
+  <p>「待辦」表格多了一欄 <code>Status</code>，點下拉會看到 <code>Not started / In progress / Done</code>。</p>
+</div>
+
+<hr>
+
+<h2 id="s10">10. 拿一把 Gemini AI 金鑰</h2>
+
+<p><strong>這是什麼？</strong> 機器人靠 Google 的 Gemini AI 來「判斷你貼的東西是哪一類」。這需要一把免費的金鑰（API key）。</p>
+
+<div class="callout warn">
+  <p class="callout-title">⚠️ 警告</p>
+  <p>這步要在做「冒煙測試」（第 11 步）<strong>之前</strong>完成，否則機器人一啟動就會因為沒有金鑰而報錯。</p>
+</div>
+
+<ol>
+  <li>用 Google 帳號登入，打開：<strong>https://aistudio.google.com/apikey</strong></li>
+  <li>點 <strong><code>Create API key</code>（建立 API 金鑰）</strong>。若問你要放在哪個專案，選預設／新建都可以。</li>
+  <li>建好後複製那串金鑰（通常以 <code>AIza...</code> 開頭）。</li>
+</ol>
+
+<p><strong>把它貼進 <code>.env</code> 的 <code>GEMINI_API_KEY=</code> 後面，存檔。</strong></p>
+
+<p>到這裡，你的 <code>.env</code> 應該所有欄位都填好了（除了刻意留空的 <code>OPENAI_API_KEY</code>）。可以請 Shao 幫你快速掃一眼有沒有貼錯。</p>
+
+<hr>
+
+<h2 id="s11">11. 安裝相依套件 + 冒煙測試（試跑一次）</h2>
+
+<p><strong>冒煙測試是什麼？</strong> 就是「先在前景手動跑一次，親眼確認整條路通不通」，再談長期自動啟動。</p>
+
+<p>先安裝程式需要的套件（確認你在 <code>$env:USERPROFILE\telegram-inbox-bot</code>）：</p>
+
+<pre class="cmd"><code>uv sync</code></pre>
+
+<div class="callout success">
+  <p class="callout-title">✅ 成功長這樣</p>
+  <p>跑出一段安裝／同步套件的訊息，最後沒有紅色 error，回到可打字狀態。</p>
+</div>
+
+<p>接著在前景啟動機器人：</p>
+
+<pre class="cmd"><code>uv run python -m inbox_bot.main</code></pre>
+
+<div class="callout success">
+  <p class="callout-title">✅ 你會看到什麼</p>
+  <p>印出幾行啟動 log（例如載入設定、開始輪詢之類），然後<strong>停在那裡持續運作</strong>（不會跳回可打字狀態，這是對的——它正在待命）。</p>
+</div>
+
+<p>現在<strong>到手機那個頻道，貼一張截圖</strong>（或一段文字）。</p>
+
+<div class="callout success">
+  <p class="callout-title">✅ 成功長這樣</p>
+  <p>機器人會在你那則貼文<strong>底下回覆</strong>，內容是一個分類 emoji（例如餐廳 🍽️）加上一條 Notion 連結。</p>
+  <p>回 Notion 看對應的表格，會<strong>多出一筆新資料</strong>。</p>
+</div>
+
+<p>確認沒問題後，在終端機按 <strong><code>Ctrl + C</code></strong> 把它停掉（我們下一步會設成自動啟動）。</p>
+
+<div class="callout tip">
+  <p class="callout-title">💡 如果機器人回你「分類失敗」或截圖後一直沒反應 → 這樣解</p>
+  <p>⚠️ 這可能是 Gemini 相容性的問題。<strong>請把情況（螢幕上的錯誤訊息）回報給 Shao</strong>——這種狀況需要他在程式端開啟一個叫 <code>response_format</code> 的相容退路才能解，不是你這邊能調的。先別自己亂改。</p>
+</div>
+
+<div class="callout tip">
+  <p class="callout-title">💡 如果出現金鑰／額度相關錯誤 → 這樣解</p>
+  <p>檢查 <code>.env</code> 的 <code>GEMINI_API_KEY</code> 是否貼對、沒有多餘空格；或到 Google AI Studio 看金鑰是否有效／額度是否用完。</p>
+</div>
+
+<hr>
+
+<h2 id="s12">12. 設定開機自動啟動（<code>run_bot.bat</code> + 工作排程器）</h2>
+
+<p><strong>這是什麼？</strong> 前面是你手動開著才會跑。這一步讓 Windows <strong>每次你登入電腦就自動把機器人叫起來</strong>，而且它萬一當掉會自動重開，你就不用管了。專案裡已經幫你準備好一個 <code>windows\run_bot.bat</code> 啟動器（它會在機器人意外結束時自動重跑），我們只要用 Windows 內建的<strong>工作排程器（Task Scheduler）</strong>、透過 <code>schtasks</code> 指令把它註冊成「登入時自動啟動」即可。</p>
+
+<p>先確認可以手動跑起來（前一步的冒煙測試已經驗證過了）。</p>
+
+<p>註冊成「登入時自動啟動」，整段貼進終端機：</p>
+
+<pre class="cmd"><code>schtasks /create /tn "TelegramInboxBot" /tr "\"%USERPROFILE%\telegram-inbox-bot\windows\run_bot.bat\"" /sc onlogon /rl limited /f</code></pre>
+
+<div class="callout success">
+  <p class="callout-title">✅ 成功長這樣</p>
+  <p>印出 <code>成功: 已建立排定的工作 "TelegramInboxBot"。</code></p>
+</div>
+
+<p>立即啟動一次（不必登出、不必重開機）：</p>
+
+<pre class="cmd"><code>schtasks /run /tn "TelegramInboxBot"</code></pre>
+
+<p>查狀態：</p>
+
+<pre class="cmd"><code>schtasks /query /tn "TelegramInboxBot"</code></pre>
+
+<div class="callout success">
+  <p class="callout-title">✅ 成功長這樣</p>
+  <p><code>/query</code> 印出一個表格，「狀態」欄會顯示 <code>執行中</code> 或類似字樣。</p>
+</div>
+
+<div class="callout tip">
+  <p class="callout-title">💡 提示</p>
+  <p>執行後會冒出一個黑底終端機小視窗，這是機器人本體。可以<strong>最小化，但不要關閉</strong>（關掉＝機器人停）。當掉時 <code>run_bot.bat</code> 會自動重開。
+  以後重開機它會自己啟動（因為 <code>/sc onlogon</code>＝登入時執行）。若某次沒反應，重跑上面的 <code>schtasks /run</code> 那行即可。</p>
+</div>
+
+<p><strong>別讓電腦睡眠：</strong> 設定 → 系統 → 電源 → 螢幕與睡眠 → 把「睡眠」全部改成「永不」。</p>
+
+<hr>
+
+<h2 id="s13">13. 自己新增／移除子資料庫（以「食譜」為例）</h2>
+
+<p><strong>這是什麼、為什麼要學？</strong> 內建只有 10 類（餐廳、地點、待辦⋯⋯），如果你想收「食譜」這種內建沒有的類別，不必找 Shao 改程式，自己照下面四步就能加一個新表格。全程複製貼上即可。</p>
+
+<div class="step">
+  <p class="step-title">第 1 步：編輯 <code>custom_categories.toml</code>，打開範例、拿掉註解</p>
+  <pre class="cmd"><code>notepad custom_categories.toml</code></pre>
+  <p>打開後，複製檔案裡「範例」那一整塊（<code>[[category]]</code> 那幾行），把每行開頭的 <code>#</code> 拿掉，改成：</p>
+  <pre class="envblock"><code>[[category]]
+key  = "recipe"
+name = "食譜"
+hint = "食譜、料理作法、想煮的菜、菜單截圖"</code></pre>
+  <p><code>key</code> 是英文小寫代號（等一下會對應 <code>.env</code> 的 <code>NOTION_DB_RECIPE</code>）；<code>name</code> 是 Notion 表格顯示的名字；<code>hint</code> 是告訴 AI「什麼樣的內容該歸到這一類」。改完存檔。</p>
+</div>
+
+<div class="step">
+  <p class="step-title">第 2 步：用腳本建立這個新表格</p>
+  <pre class="cmd"><code>uv run python scripts/provision_notion.py add &lt;你的母頁面id&gt;</code></pre>
+  <div class="callout success">
+    <p class="callout-title">✅ 成功長這樣</p>
+    <p>印出 <code>NOTION_DB_RECIPE=xxxxxxxx...</code>。</p>
+  </div>
+</div>
+
+<div class="step">
+  <p class="step-title">第 3 步：把那行貼進 <code>.env</code></p>
+  <pre class="cmd"><code>notepad .env</code></pre>
+  <p>把 <code>NOTION_DB_RECIPE=xxxxxxxx...</code> 貼進去（新增一行），存檔。</p>
+</div>
+
+<div class="step">
+  <p class="step-title">第 4 步：重啟機器人，讓新設定生效</p>
+  <pre class="cmd"><code>schtasks /end /tn "TelegramInboxBot"</code></pre>
+  <pre class="cmd"><code>schtasks /run /tn "TelegramInboxBot"</code></pre>
+  <div class="callout success">
+    <p class="callout-title">✅ 成功長這樣</p>
+    <p>之後到頻道貼食譜截圖，機器人就會自動歸到新的「食譜」表。</p>
+  </div>
+</div>
+
+<p><strong>移除一個子資料庫：</strong> 把 <code>custom_categories.toml</code> 裡那一塊刪掉（或重新加回 <code>#</code> 註解掉），然後照上面「第 4 步」重啟即可。Notion 裡舊的那個表格自己手動到 Notion 刪掉（程式不會自動刪）。</p>
+
+<div class="callout tip">
+  <p class="callout-title">💡 常見錯誤小方塊</p>
+  <ul>
+    <li><code>key</code> 裡有空格或大寫字母 → 一定要全小寫、不能有空格（例如 <code>recipe</code>，不能是 <code>Recipe</code> 或 <code>my recipe</code>）。</li>
+    <li>改完 <code>.toml</code> 或 <code>.env</code> 忘記重啟（第 4 步）→ 新設定不會生效。</li>
+    <li>母頁面 id 貼錯或漏貼 → 第 2 步會失敗，回第 7c 步重新複製一次。</li>
+    <li>還沒建表（第 2 步）就先把 <code>NOTION_DB_RECIPE=</code> 貼進 <code>.env</code> → 順序反了，請先跑第 2 步拿到真正的 id 再貼。</li>
+    <li>內建 10 類裡有用不到的（例如你完全不需要「服飾」）→ <strong>放著不理即可</strong>，不會造成任何問題；真的想整個砍掉不用，才需要找 Shao 幫忙改程式。</li>
+  </ul>
+</div>
+
+<hr>
+
+<h2 id="s14">14. 疑難排解速查表（Windows 版）</h2>
+
+<table>
+  <thead>
+    <tr><th>症狀</th><th>可能原因</th><th>怎麼解</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>機器人完全沒反應、貼訊息石沉大海</td>
+      <td>機器人<strong>沒設成頻道管理員</strong></td>
+      <td>回第 4 步，把機器人加進頻道 Administrators</td>
+    </tr>
+    <tr>
+      <td>抓 channel id 的腳本一直「等待中」</td>
+      <td>同上，或設錯頻道</td>
+      <td>檢查第 4 步；<code>Ctrl+C</code> 停掉重跑</td>
+    </tr>
+    <tr>
+      <td>啟動就報 token 相關錯誤</td>
+      <td><code>TELEGRAM_BOT_TOKEN</code> 貼錯／有多餘空格</td>
+      <td>回第 5 步，確認整串 token 正確、等號後不留空格不加引號</td>
+    </tr>
+    <tr>
+      <td>provision 或啟動時 Notion 說沒權限 / 找不到頁面</td>
+      <td>母頁面<strong>沒分享給 integration</strong>，或母頁面 id 複製錯</td>
+      <td>回第 7b／7c 檢查</td>
+    </tr>
+    <tr>
+      <td>「待辦」類存不進去</td>
+      <td><strong>「待辦」表格沒加 <code>Status</code> 欄位</strong>，或選項被改名</td>
+      <td>回第 9 步，加 <code>Status</code>（Status 型），保留預設 <code>Not started/In progress/Done</code>，別改名</td>
+    </tr>
+    <tr>
+      <td>啟動報 Gemini 金鑰無效 / 額度用完</td>
+      <td><code>GEMINI_API_KEY</code> 貼錯，或免費額度用盡</td>
+      <td>回第 10 步重拿／檢查金鑰，到 AI Studio 看額度</td>
+    </tr>
+    <tr>
+      <td>貼 <code>uv</code> 或 <code>git</code> 指令說 <code>command not found</code> / 不是內部或外部命令</td>
+      <td>剛裝好但終端機沒重開，PATH 沒更新</td>
+      <td>把終端機視窗<strong>整個關掉重開</strong>；或確認第 1 步 <code>winget install</code> 有跑成功</td>
+    </tr>
+    <tr>
+      <td><code>schtasks /query</code> 找不到 <code>TelegramInboxBot</code></td>
+      <td>排程沒建立成功，或路徑錯誤</td>
+      <td>檢查 <code>%USERPROFILE%\telegram-inbox-bot\windows\run_bot.bat</code> 這個檔案是否存在；重跑第 12 步的 <code>schtasks /create</code> 那行</td>
+    </tr>
+    <tr>
+      <td><strong>機器人一直回「分類失敗」</strong></td>
+      <td>Gemini 與程式的相容性問題</td>
+      <td>⚠️ <strong>回報 Shao</strong>——需要他在程式端開啟 <code>response_format</code> 相容退路，這不是你端能調的</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2 id="s-checklist">收工檢查清單</h2>
+
+<ul class="checklist">
+  <li><code>uv --version</code> / <code>git --version</code> 都有版本號</li>
+  <li><code>.env</code> 全部欄位填好（token、channel id、notion token、10 個 DB id、gemini key），<code>OPENAI_API_KEY</code> 留空、<code>DIGEST_ENABLED=false</code></li>
+  <li>Notion 母頁面底下有 10 個表格</li>
+  <li>「待辦」表格有 <code>Status</code> 欄位、選項是預設的 <code>Not started/In progress/Done</code></li>
+  <li>冒煙測試（第 11 步）：頻道貼截圖 → 機器人回覆 + Notion 有新資料</li>
+  <li><code>schtasks /query /tn "TelegramInboxBot"</code> 查得到這個工作</li>
+  <li>電腦設定成不睡眠、長時間開機（設定 → 系統 → 電源 → 螢幕與睡眠 → 「睡眠」設為「永不」）</li>
+</ul>
+
+<footer class="closing">
+  <p>全部打勾就大功告成了！有任何一步卡住，把終端機上的錯誤訊息截圖給 Shao 最快。</p>
+</footer>
+
+</div>
+</body>
+</html>
