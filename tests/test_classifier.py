@@ -198,51 +198,93 @@ async def test_gemini_uses_json_response_format(gemini_settings):
     assert kwargs["max_tokens"] >= 2048
 
 
-def test_route_youtube_link_to_article():
-    from inbox_bot.classifier import _route_known_url
-    r = _route_known_url("https://youtu.be/dQw4w9WgXcQ")
-    assert r is not None
-    assert r.category == "article"
-    assert r.fields["type"] == "影片"
-    assert r.fields["url"] == "https://youtu.be/dQw4w9WgXcQ"
+def test_bare_single_url_extracts():
+    from inbox_bot.classifier import _bare_single_url
+    assert _bare_single_url("https://youtu.be/x") == "https://youtu.be/x"
 
 
-def test_route_youtube_watch_url():
-    from inbox_bot.classifier import _route_known_url
-    r = _route_known_url("https://www.youtube.com/watch?v=abc123")
-    assert r is not None and r.category == "article"
+def test_bare_single_url_none_for_caption():
+    from inbox_bot.classifier import _bare_single_url
+    # a caption gives the model real content — don't treat as a bare link
+    assert _bare_single_url("好好笑 https://youtu.be/x") is None
 
 
-def test_route_instagram_link_to_funny():
-    from inbox_bot.classifier import _route_known_url
-    r = _route_known_url("https://www.instagram.com/reel/ABC/")
-    assert r is not None and r.category == "funny"
+def test_bare_single_url_none_for_plain_text():
+    from inbox_bot.classifier import _bare_single_url
+    assert _bare_single_url("買牛奶") is None
 
 
-def test_route_ignores_url_with_caption():
-    from inbox_bot.classifier import _route_known_url
-    # a caption gives the model real content — don't short-circuit
-    assert _route_known_url("好好笑 https://youtu.be/x") is None
+def test_extract_link_meta_parses_og():
+    from inbox_bot.classifier import _extract_link_meta
+    html = ('<html><head>'
+            '<meta property="og:title" content="東京自由行攻略">'
+            '<meta property="og:description" content="景點與美食推薦">'
+            '<meta property="og:site_name" content="Instagram">'
+            '</head></html>')
+    meta = _extract_link_meta(html)
+    assert meta is not None
+    assert "東京自由行攻略" in meta and "景點與美食推薦" in meta
 
 
-def test_route_ignores_unknown_domain():
-    from inbox_bot.classifier import _route_known_url
-    assert _route_known_url("https://example.com/article") is None
+def test_extract_link_meta_none_when_empty():
+    from inbox_bot.classifier import _extract_link_meta
+    assert _extract_link_meta("<html><body>nothing here</body></html>") is None
 
 
-def test_route_ignores_plain_text():
-    from inbox_bot.classifier import _route_known_url
-    assert _route_known_url("買牛奶") is None
+async def test_classify_enriches_bare_url_with_preview(gemini_settings, monkeypatch):
+    import inbox_bot.classifier as clf
+
+    async def fake_fetch(url):
+        return "標題/title: 東京自由行\n描述/description: 景點推薦"
+    monkeypatch.setattr(clf, "_fetch_url_context", fake_fetch)
+
+    client = MagicMock()
+    client.chat.completions.create = AsyncMock(return_value=_make_json_response({
+        "category": "place", "confidence": 0.9,
+        "raw_text": "x", "fields": {"name": "東京", "city": "東京/日本"},
+    }))
+    result = await classify(image_bytes=None,
+                            text="https://www.instagram.com/p/ABC/",
+                            settings=gemini_settings, client=client)
+    assert result.category == "place"
+    # the fetched preview must have been handed to the model
+    sent = client.chat.completions.create.await_args.kwargs["messages"][1]["content"]
+    assert "東京自由行" in json.dumps(sent, ensure_ascii=False)
 
 
-async def test_classify_short_circuits_known_url_without_calling_model(gemini_settings):
+async def test_classify_youtube_fallback_when_fetch_fails(gemini_settings, monkeypatch):
+    import inbox_bot.classifier as clf
+
+    async def fake_fetch(url):
+        return None
+    monkeypatch.setattr(clf, "_fetch_url_context", fake_fetch)
+
     client = MagicMock()
     client.chat.completions.create = AsyncMock()
     result = await classify(image_bytes=None, text="https://youtu.be/x",
                             settings=gemini_settings, client=client)
-    assert result.category == "article"
-    # the model must NOT be called for a bare known link
+    assert result.category == "article" and result.fields["type"] == "影片"
     client.chat.completions.create.assert_not_awaited()
+
+
+async def test_classify_unknown_link_no_preview_goes_to_model(gemini_settings, monkeypatch):
+    import inbox_bot.classifier as clf
+
+    async def fake_fetch(url):
+        return None
+    monkeypatch.setattr(clf, "_fetch_url_context", fake_fetch)
+
+    client = MagicMock()
+    client.chat.completions.create = AsyncMock(return_value=_make_json_response({
+        "category": "inbox", "confidence": 0.9,
+        "raw_text": "x", "fields": {"reason": "no preview"},
+    }))
+    result = await classify(image_bytes=None,
+                            text="https://www.threads.net/@x/post/1",
+                            settings=gemini_settings, client=client)
+    # no longer hardcoded to funny — the model decides
+    assert result.category == "inbox"
+    client.chat.completions.create.assert_awaited()
 
 
 async def test_gemini_strips_code_fences(gemini_settings):

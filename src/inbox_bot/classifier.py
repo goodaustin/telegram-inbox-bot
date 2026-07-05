@@ -2,6 +2,7 @@ import asyncio
 import base64
 import json
 import re
+import httpx
 from importlib import resources
 from typing import Any
 from urllib.parse import urlparse
@@ -157,32 +158,84 @@ async def _request_args(
 
 
 _URL_RE = re.compile(r"https?://\S+")
+_META_TIMEOUT = 6.0
+_BROWSER_UA = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/122.0 Safari/537.36"
+)
 
 
-def _route_known_url(text: str | None) -> ClassifierResult | None:
-    """Deterministically route a message that is essentially a single known-domain
-    link. Cautious models (e.g. gemini-flash) refuse to classify links they can't
-    fetch and dump them to inbox; domain routing sidesteps the model entirely."""
+def _bare_single_url(text: str | None) -> str | None:
+    """Return the URL iff the message is essentially just one link. A caption
+    alongside the link gives the model real content, so those are left to it."""
     if not text:
         return None
     urls = _URL_RE.findall(text)
     if len(urls) != 1:
         return None
-    # only short-circuit when the message is basically just the URL; a caption
-    # gives the model real content to classify, so let it handle those.
     if text.replace(urls[0], "").strip():
         return None
-    url = urls[0].rstrip(").,]}")
+    return urls[0].rstrip(").,]}")
+
+
+def _extract_link_meta(html: str) -> str | None:
+    """Pull a compact preview (site/title/description/type) from a page's
+    OpenGraph / twitter / <title> tags. Returns None if nothing useful found."""
+    def meta(prop: str) -> str | None:
+        pat = re.escape(prop)
+        m = re.search(
+            r'<meta[^>]+(?:property|name)=["\']' + pat
+            + r'["\'][^>]+content=["\']([^"\']+)["\']', html, re.I)
+        if not m:
+            m = re.search(
+                r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name)=["\']'
+                + pat + r'["\']', html, re.I)
+        return m.group(1).strip() if m else None
+
+    title = meta("og:title") or meta("twitter:title")
+    if not title:
+        t = re.search(r"<title[^>]*>([^<]+)</title>", html, re.I)
+        title = t.group(1).strip() if t else None
+    desc = meta("og:description") or meta("twitter:description")
+    site = meta("og:site_name")
+    otype = meta("og:type")
+
+    parts = []
+    if site:
+        parts.append(f"網站/site: {site}")
+    if title:
+        parts.append(f"標題/title: {title}")
+    if desc:
+        parts.append(f"描述/description: {desc}")
+    if otype:
+        parts.append(f"og:type: {otype}")
+    return "\n".join(parts) if parts else None
+
+
+async def _fetch_url_context(url: str) -> str | None:
+    """Best-effort fetch of a link's preview metadata so the model classifies by
+    real content, not a bare URL. Returns None on any failure (timeout, non-HTML,
+    blocked) — the caller falls back gracefully."""
+    try:
+        async with httpx.AsyncClient(
+            follow_redirects=True, timeout=_META_TIMEOUT,
+            headers={"User-Agent": _BROWSER_UA, "Accept-Language": "zh-TW,zh,en"},
+        ) as c:
+            resp = await c.get(url)
+        if "html" not in resp.headers.get("content-type", "").lower():
+            return None
+        return _extract_link_meta(resp.text[:200_000])
+    except Exception:
+        return None
+
+
+def _youtube_fallback(url: str) -> ClassifierResult | None:
+    """If metadata fetch fails, a YouTube link is still reliably a video."""
     host = (urlparse(url).hostname or "").lower().removeprefix("www.")
     if host in ("youtube.com", "m.youtube.com", "youtu.be") or host.endswith(".youtube.com"):
         return ClassifierResult(
-            category="article", confidence=1.0, raw_text=text,
+            category="article", confidence=1.0, raw_text=url,
             fields={"title": url, "url": url, "type": "影片"},
-        )
-    if host in ("instagram.com", "instagr.am") or host.endswith(".instagram.com"):
-        return ClassifierResult(
-            category="funny", confidence=1.0, raw_text=text,
-            fields={"caption": url, "tags": [], "notes": "IG 連結（自動歸類，開連結確認內容）"},
         )
     return None
 
@@ -194,18 +247,27 @@ async def classify(
     settings: Settings,
     client: AsyncOpenAI | None = None,
 ) -> ClassifierResult:
-    # bare known-domain links: route by domain (models can't see link contents)
+    # bare links: fetch the page's preview metadata so the model classifies by
+    # real content (models can't open URLs; cautious ones dump links to inbox).
+    text_for_model = text
     if image_bytes is None:
-        routed = _route_known_url(text)
-        if routed is not None:
-            return routed
+        bare_url = _bare_single_url(text)
+        if bare_url is not None:
+            ctx = await _fetch_url_context(bare_url)
+            if ctx:
+                text_for_model = f"{text}\n\n[連結預覽 link preview]\n{ctx}"
+            else:
+                fallback = _youtube_fallback(bare_url)
+                if fallback is not None:
+                    return fallback
+                # unknown link with no preview → let the model decide
 
     if client is None:
         client = _make_client(settings)
 
     keys = all_category_keys()
     system = _load_system_prompt() + render_custom_prompt_section()
-    content = _build_content(image_bytes, text)
+    content = _build_content(image_bytes, text_for_model)
 
     last_err: Exception | None = None
     for attempt in (1, 2):
