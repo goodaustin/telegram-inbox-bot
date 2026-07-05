@@ -84,6 +84,25 @@ def test_missing_name_or_hint_rejected(tmp_path):
         load_custom_categories(p)
 
 
+def test_single_bracket_category_table_rejected(tmp_path):
+    p = _write(tmp_path, """
+        [category]
+        key = "recipe"
+        name = "食譜"
+        hint = "x"
+    """)
+    with pytest.raises(CategoryConfigError):
+        load_custom_categories(p)
+
+
+def test_scalar_category_value_rejected(tmp_path):
+    p = _write(tmp_path, """
+        category = "x"
+    """)
+    with pytest.raises(CategoryConfigError):
+        load_custom_categories(p)
+
+
 def test_all_and_custom_keys():
     cats = [CustomCategory(key="recipe", name="食譜", hint="h")]
     assert all_category_keys(cats) == BUILTIN_KEYS + ["recipe"]
