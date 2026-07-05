@@ -27,6 +27,10 @@
 **Create:**
 - `custom_categories.toml` — friend-editable list of extra categories (ships with a commented example, zero active entries).
 - `src/inbox_bot/categories.py` — single source of truth for category keys; loads/validates custom categories; renders the prompt section.
+- `tests/test_provision_notion.py` — tests for the provisioning helper.
+
+**Modify (schema):**
+- `src/inbox_bot/schemas.py` — `ClassifierResult.category` accepts any key in `all_category_keys()` (built-ins + custom) instead of the fixed `Category` Literal, while still rejecting unknown categories. The `Category` Literal and `CATEGORY_FIELD_SCHEMAS` (built-ins only) stay as-is.
 - `windows/run_bot.bat` — self-restarting launcher for Windows autostart.
 - `docs/friend-setup-windows.md` — Traditional-Chinese Windows guide.
 - `docs/friend-setup-windows.html` — printable self-contained HTML version.
@@ -295,6 +299,92 @@ git commit -m "feat: custom-category registry (categories.py + custom_categories
 
 ---
 
+## Task 1B: `schemas.py` — allow custom categories in `ClassifierResult`
+
+**Files:**
+- Modify: `src/inbox_bot/schemas.py`
+- Test: `tests/test_schemas.py`
+
+**Why:** `ClassifierResult.category` is currently `Category` (a `Literal` of the 10 built-ins). A custom category like `"recipe"` would raise `ValidationError` and break the whole feature. Loosen the field to `str` with a validator that accepts anything in `all_category_keys()` (built-ins + custom) and rejects the rest — preserving the "reject a hallucinated category" safety. Keep the `Category` Literal and `CATEGORY_FIELD_SCHEMAS` untouched (they are consumed by `test_bot.py::test_category_emoji_covers_all_categories` via `get_args(Category)` and by `test_schemas.py`).
+
+**Interfaces:**
+- Consumes: `categories.all_category_keys()` (Task 1), imported lazily inside the validator to avoid any import cycle.
+- Produces: `ClassifierResult` accepting built-in + custom category keys; rejecting unknown ones with `ValidationError`.
+
+- [ ] **Step 1: Write the failing tests** (append to `tests/test_schemas.py`)
+
+```python
+def test_classifier_result_accepts_builtin_category():
+    r = ClassifierResult(category="todo", confidence=0.9, raw_text="x")
+    assert r.category == "todo"
+
+
+def test_classifier_result_rejects_unknown_category():
+    import pytest
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError):
+        ClassifierResult(category="not_a_category", confidence=0.9, raw_text="x")
+
+
+def test_classifier_result_accepts_custom_category(monkeypatch):
+    import inbox_bot.categories as cats
+    from inbox_bot.categories import CustomCategory
+    monkeypatch.setattr(cats, "get_custom_categories",
+                        lambda: [CustomCategory("recipe", "食譜", "h")])
+    r = ClassifierResult(category="recipe", confidence=0.9, raw_text="x")
+    assert r.category == "recipe"
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `uv run pytest tests/test_schemas.py -k "accepts_custom or rejects_unknown or accepts_builtin" -v`
+Expected: FAIL — `accepts_custom` raises `ValidationError` (Literal rejects `"recipe"`).
+
+- [ ] **Step 3: Edit `schemas.py`**
+
+Add `field_validator` to the import and change the field. Keep `Category` and `CATEGORY_FIELD_SCHEMAS` exactly as they are.
+
+```python
+from typing import Any, Literal
+from pydantic import BaseModel, Field, field_validator
+
+Category = Literal[
+    "restaurant", "place", "todo", "article",
+    "quote", "apparel", "skincare", "photo", "funny", "inbox",
+]
+
+
+class ClassifierResult(BaseModel):
+    category: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    raw_text: str
+    fields: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("category")
+    @classmethod
+    def _known_category(cls, v: str) -> str:
+        from inbox_bot.categories import all_category_keys
+        if v not in all_category_keys():
+            raise ValueError(f"unknown category: {v!r}")
+        return v
+```
+
+(Leave `CATEGORY_FIELD_SCHEMAS` unchanged below the class.)
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `uv run pytest tests/test_schemas.py -v`
+Expected: PASS (new + existing).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/inbox_bot/schemas.py tests/test_schemas.py
+git commit -m "feat: ClassifierResult.category accepts custom categories"
+```
+
+---
+
 ## Task 2: `config.py` — `digest_enabled` + custom-key DB lookup
 
 **Files:**
@@ -520,12 +610,12 @@ def test_json_instruction_lists_keys():
 
 
 async def test_classify_accepts_custom_category(settings, monkeypatch):
-    # make all_category_keys include a custom key and appear in the prompt
-    import inbox_bot.classifier as clf
+    # patch the single source (get_custom_categories) so the enum, the prompt
+    # section, AND ClassifierResult validation all see the custom key.
+    import inbox_bot.categories as cats
     from inbox_bot.categories import CustomCategory
-    cats = [CustomCategory(key="recipe", name="食譜", hint="食譜、料理")]
-    monkeypatch.setattr(clf, "all_category_keys", lambda customs=None: clf.all_category_keys.__wrapped__() if False else ["restaurant","place","todo","article","quote","apparel","skincare","photo","funny","inbox","recipe"])
-    monkeypatch.setattr(clf, "render_custom_prompt_section", lambda customs=None: "\n## 你自訂的分類\n- **recipe**（食譜）")
+    monkeypatch.setattr(cats, "get_custom_categories",
+                        lambda: [CustomCategory("recipe", "食譜", "食譜、料理")])
     client = make_mock_client({
         "category": "recipe", "confidence": 0.9,
         "raw_text": "番茄炒蛋做法", "fields": {"name": "番茄炒蛋", "notes": "", "tags": []},
@@ -535,7 +625,7 @@ async def test_classify_accepts_custom_category(settings, monkeypatch):
     assert result.fields["name"] == "番茄炒蛋"
 ```
 
-> Note: the `monkeypatch.setattr` for `all_category_keys` above just needs to return a list including `"recipe"`; simplify to `lambda customs=None: [...]` with the explicit list shown.
+> Patch `get_custom_categories` (not `classifier.all_category_keys`): `all_category_keys`, `custom_category_keys`, `render_custom_prompt_section`, and the `schemas.py` validator all funnel through it, so one patch keeps them consistent.
 
 - [ ] **Step 2: Run tests to verify they fail**
 
@@ -587,13 +677,17 @@ Change `_request_args` signature to accept `keys: list[str]` and use the builder
 - Gemini path: `messages` system content = `system + _json_instruction(keys)`.
 - OpenAI path: `tools=[_build_openai_tool(keys)]`.
 
-In `classify(...)`, compute keys + prompt once:
+In `classify(...)`, compute keys + prompt once. **Preserve the existing `_route_known_url(text)` short-circuit at the top of `classify()` and the whole retry/low-confidence loop exactly** — only the `system`/enum wiring changes:
 
 ```python
+    # ... keep the existing _route_known_url short-circuit above, unchanged ...
+    if client is None:
+        client = _make_client(settings)
+
     keys = all_category_keys()
     system = _load_system_prompt() + render_custom_prompt_section()
     content = _build_content(image_bytes, text)
-    ...
+    # ... inside the retry loop, the only change is the call signature:
     args = await _request_args(client, settings, system, content, keys)
 ```
 
@@ -1096,6 +1190,6 @@ git commit -m "docs: printable HTML version of the Windows setup guide"
 
 ## Self-Review (completed during planning)
 
-- **Spec coverage:** §1a→T1; §1b→T1; §1c→T2; §1d→T4; §1e→T5; §1f→T6; §2→T2+T3; §3→T9; §4→T8+T9; §5→T9; §6→T10; `.env.example`→T7. All covered.
+- **Spec coverage:** §1a→T1; §1b→T1; §1c→T2; §1d→T4; §1e→T5; §1f→T6; §2→T2+T3; §3→T9; §4→T8+T9; §5→T9; §6→T10; `.env.example`→T7. Integration gap found during pre-flight and added: `ClassifierResult.category` Literal→custom (T1B). `bot.py` emoji lookup already `.get(...,"📥")`-safe → no task needed.
 - **Placeholder scan:** no TBD/TODO; doc tasks (T9/T10) give exact commands verbatim + concrete section list + grep-based acceptance, not vague "write docs".
 - **Type consistency:** `CustomCategory(key,name,hint)`, `env_var`, `all_category_keys`, `custom_category_keys`, `render_custom_prompt_section`, `custom_db_definitions`, `STANDARD_PROPS`, `register_digest_job`, `_build_openai_tool`, `_json_instruction` — names/signatures consistent across T1–T6.
