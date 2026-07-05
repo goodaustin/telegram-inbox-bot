@@ -27,13 +27,11 @@ def _setup_logging() -> None:
     logging.getLogger("apscheduler").setLevel(logging.INFO)
 
 
-async def _run() -> None:
-    settings = get_settings()
+def register_digest_job(scheduler, settings) -> bool:
+    if not settings.digest_enabled:
+        logging.info("weekly digest disabled by config (DIGEST_ENABLED=false)")
+        return False
     tz = ZoneInfo(settings.timezone)
-
-    app = build_application(settings)
-
-    scheduler = AsyncIOScheduler(timezone=tz)
     scheduler.add_job(
         send_digest,
         trigger=CronTrigger(
@@ -46,12 +44,22 @@ async def _run() -> None:
         id="weekly_digest",
         replace_existing=True,
     )
-    scheduler.start()
-    job = scheduler.get_job("weekly_digest")
-    if job:
-        logging.info("scheduler started; next digest: %s", job.next_run_time)
+    return True
+
+
+async def _run() -> None:
+    settings = get_settings()
+    tz = ZoneInfo(settings.timezone)
+
+    app = build_application(settings)
+
+    scheduler = AsyncIOScheduler(timezone=tz)
+    if register_digest_job(scheduler, settings):
+        scheduler.start()
+        job = scheduler.get_job("weekly_digest")
+        logging.info("scheduler started; next digest: %s", job.next_run_time if job else "?")
     else:
-        logging.warning("scheduler started but weekly_digest job not registered")
+        scheduler.start()  # started but no jobs; harmless and keeps shutdown symmetric
 
     await app.initialize()
     await app.start()
