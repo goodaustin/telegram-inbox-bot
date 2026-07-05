@@ -35,9 +35,19 @@ def load_custom_categories(path: Path | None = None) -> list[CustomCategory]:
     with path.open("rb") as f:
         data = tomllib.load(f)
     raw = data.get("category", [])
+    if not isinstance(raw, list):
+        raise CategoryConfigError(
+            "custom_categories.toml：category 區塊格式錯誤，"
+            "每個分類請用雙中括號 [[category]]（不是單中括號 [category]）"
+        )
     cats: list[CustomCategory] = []
     seen: set[str] = set()
     for i, entry in enumerate(raw):
+        if not isinstance(entry, dict):
+            raise CategoryConfigError(
+                f"custom_categories.toml 第 {i + 1} 塊：格式錯誤，"
+                "每個分類請用雙中括號 [[category]]（不是單中括號 [category]）"
+            )
         key = entry.get("key", "")
         name = entry.get("name", "")
         hint = entry.get("hint", "")
