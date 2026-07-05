@@ -1,8 +1,10 @@
 import asyncio
 import base64
 import json
+import re
 from importlib import resources
 from typing import Any
+from urllib.parse import urlparse
 from openai import AsyncOpenAI
 from inbox_bot.config import Settings
 from inbox_bot.schemas import ClassifierResult
@@ -143,6 +145,37 @@ async def _request_args(
     return json.loads(tool_calls[0].function.arguments)
 
 
+_URL_RE = re.compile(r"https?://\S+")
+
+
+def _route_known_url(text: str | None) -> ClassifierResult | None:
+    """Deterministically route a message that is essentially a single known-domain
+    link. Cautious models (e.g. gemini-flash) refuse to classify links they can't
+    fetch and dump them to inbox; domain routing sidesteps the model entirely."""
+    if not text:
+        return None
+    urls = _URL_RE.findall(text)
+    if len(urls) != 1:
+        return None
+    # only short-circuit when the message is basically just the URL; a caption
+    # gives the model real content to classify, so let it handle those.
+    if text.replace(urls[0], "").strip():
+        return None
+    url = urls[0].rstrip(").,]}")
+    host = (urlparse(url).hostname or "").lower().removeprefix("www.")
+    if host in ("youtube.com", "m.youtube.com", "youtu.be") or host.endswith(".youtube.com"):
+        return ClassifierResult(
+            category="article", confidence=1.0, raw_text=text,
+            fields={"title": url, "url": url, "type": "影片"},
+        )
+    if host in ("instagram.com", "instagr.am") or host.endswith(".instagram.com"):
+        return ClassifierResult(
+            category="funny", confidence=1.0, raw_text=text,
+            fields={"caption": url, "tags": [], "notes": "IG 連結（自動歸類，開連結確認內容）"},
+        )
+    return None
+
+
 async def classify(
     *,
     image_bytes: bytes | None,
@@ -150,6 +183,12 @@ async def classify(
     settings: Settings,
     client: AsyncOpenAI | None = None,
 ) -> ClassifierResult:
+    # bare known-domain links: route by domain (models can't see link contents)
+    if image_bytes is None:
+        routed = _route_known_url(text)
+        if routed is not None:
+            return routed
+
     if client is None:
         client = _make_client(settings)
 

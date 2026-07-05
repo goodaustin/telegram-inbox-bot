@@ -198,6 +198,53 @@ async def test_gemini_uses_json_response_format(gemini_settings):
     assert kwargs["max_tokens"] >= 2048
 
 
+def test_route_youtube_link_to_article():
+    from inbox_bot.classifier import _route_known_url
+    r = _route_known_url("https://youtu.be/dQw4w9WgXcQ")
+    assert r is not None
+    assert r.category == "article"
+    assert r.fields["type"] == "影片"
+    assert r.fields["url"] == "https://youtu.be/dQw4w9WgXcQ"
+
+
+def test_route_youtube_watch_url():
+    from inbox_bot.classifier import _route_known_url
+    r = _route_known_url("https://www.youtube.com/watch?v=abc123")
+    assert r is not None and r.category == "article"
+
+
+def test_route_instagram_link_to_funny():
+    from inbox_bot.classifier import _route_known_url
+    r = _route_known_url("https://www.instagram.com/reel/ABC/")
+    assert r is not None and r.category == "funny"
+
+
+def test_route_ignores_url_with_caption():
+    from inbox_bot.classifier import _route_known_url
+    # a caption gives the model real content — don't short-circuit
+    assert _route_known_url("好好笑 https://youtu.be/x") is None
+
+
+def test_route_ignores_unknown_domain():
+    from inbox_bot.classifier import _route_known_url
+    assert _route_known_url("https://example.com/article") is None
+
+
+def test_route_ignores_plain_text():
+    from inbox_bot.classifier import _route_known_url
+    assert _route_known_url("買牛奶") is None
+
+
+async def test_classify_short_circuits_known_url_without_calling_model(gemini_settings):
+    client = MagicMock()
+    client.chat.completions.create = AsyncMock()
+    result = await classify(image_bytes=None, text="https://youtu.be/x",
+                            settings=gemini_settings, client=client)
+    assert result.category == "article"
+    # the model must NOT be called for a bare known link
+    client.chat.completions.create.assert_not_awaited()
+
+
 async def test_gemini_strips_code_fences(gemini_settings):
     fenced = MagicMock()
     fenced.content = ('```json\n{"category": "quote", "confidence": 0.9, '
