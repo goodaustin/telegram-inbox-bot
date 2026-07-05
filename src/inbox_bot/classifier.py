@@ -72,6 +72,10 @@ def _build_content(image_bytes: bytes | None, text: str | None) -> list[dict[str
 
 _CATEGORY_ENUM = CLASSIFY_TOOL["input_schema"]["properties"]["category"]["enum"]
 
+# raw_text carries the full OCR of an image, so the response can be long; too low a
+# cap truncates the JSON mid-string (JSONDecodeError "Unterminated string").
+_MAX_TOKENS = 4096
+
 # Gemini's OpenAI-compat endpoint doesn't reliably honor forced tool_choice, so
 # that provider gets a JSON-mode path instead of function calling. This instruction
 # is appended to the system prompt so the model emits exactly the expected shape.
@@ -111,7 +115,7 @@ async def _request_args(
     if settings.classifier_provider == "gemini":
         resp = await client.chat.completions.create(
             model=settings.classifier_model,
-            max_tokens=1024,
+            max_tokens=_MAX_TOKENS,
             messages=[
                 {"role": "system", "content": system + _JSON_INSTRUCTION},
                 {"role": "user", "content": content},
@@ -125,7 +129,7 @@ async def _request_args(
 
     resp = await client.chat.completions.create(
         model=settings.classifier_model,
-        max_tokens=1024,
+        max_tokens=_MAX_TOKENS,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": content},

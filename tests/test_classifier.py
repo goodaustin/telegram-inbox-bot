@@ -194,6 +194,8 @@ async def test_gemini_uses_json_response_format(gemini_settings):
     # gemini path must use JSON mode and must NOT send function tools
     assert kwargs["response_format"] == {"type": "json_object"}
     assert "tools" not in kwargs
+    # token cap must be generous — raw_text (OCR) truncation breaks JSON parsing
+    assert kwargs["max_tokens"] >= 2048
 
 
 async def test_gemini_strips_code_fences(gemini_settings):
