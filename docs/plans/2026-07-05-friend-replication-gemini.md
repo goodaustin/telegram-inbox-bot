@@ -15,7 +15,7 @@
 - 兩個腳本**不得依賴任何 `NOTION_DB_*`**（避免 chicken-egg）：直接讀 `NOTION_TOKEN` / `TELEGRAM_BOT_TOKEN` 環境變數（`load_dotenv()`）。
 - Gemini 模型為 `gemini-2.5-flash`；base_url 預設 `https://generativelanguage.googleapis.com/v1beta/openai/`。
 - `notion-client` 釘選 `>=2.2,<2.4`（Notion-Version 2022-06-28）；`databases.create` 只在此版本正確建立欄位。
-- todo 的 `Status`（status 型）API 無法建立 → 腳本不建，指南標明手動加（Todo/Done）。
+- todo 的 `Status`（status 型）API 無法建立 → 腳本不建，指南標明手動加；**保留 Notion 預設選項（Not started / In progress / Done）**，因 bot 寫入「Not started」、digest 過濾「Done」，勿改名成 Todo/Done。
 - 指南假設「使用者會在旁協助」（情境 3b），但仍需極詳細、每步附指令與「會看到什麼」。
 - 每個 Task 結束跑 `uv run pytest` 全綠再 commit（腳本/文件 Task 無單元測試者，改以 `py_compile` 或全套回歸驗證）。
 
@@ -415,7 +415,7 @@ git commit -m "chore: add provision_notion + get_channel_id helper scripts for r
    （OPENAI_API_KEY 朋友端留空即可。）
 8. **建 Notion integration + 母頁面**：到 `https://www.notion.so/my-integrations` → New integration → 拿 `Internal Integration Token`（`ntn_...`）填進 `.env` 的 `NOTION_TOKEN`；在 Notion 建一個新頁面（例如「我的 Inbox」）當容器 → 頁面右上 `...` → Connections → 加入剛建的 integration；複製該頁面網址末段的 32 碼當作母頁面 id。
 9. **一鍵建 DB**：`uv run python scripts/provision_notion.py <母頁面id>`；把印出的所有 `NOTION_DB_*=...` 貼進 `.env`。
-10. **手動加 todo 的 Status**：到 Notion 的「待辦」DB → 新增 property → 名稱 `Status`、型別 **Status** → 確保有選項 `Todo` 與 `Done`。⚠️ 沒加的話每週摘要會失敗。
+10. **手動加 todo 的 Status**：到 Notion 的「待辦」DB → 新增 property → 名稱 `Status`、型別 **Status** → **保留 Notion 預設選項即可（Not started / In progress / Done）**。⚠️ bot 會寫入狀態「Not started」、每週摘要過濾「Done」，**請勿改名成 Todo/Done**（status 型無法在寫入時自動新增選項，改名會導致 todo 寫入失敗）。沒加這個欄位的話 todo 寫入與每週摘要都會失敗。
 11. **拿 Gemini API key**：到 `https://aistudio.google.com/apikey` → Create API key → 複製填進 `.env` 的 `GEMINI_API_KEY`。
 12. **安裝相依 + 冒煙測試**：`uv sync`；前景啟動 `uv run python -m inbox_bot.main`；到頻道貼一張截圖 → 應看到 bot 在該則下回覆 emoji + Notion 連結，且 Notion 對應 DB 有新增。成功後 `Ctrl+C` 停掉。
     - ⚠️ **Gemini 相容性檢查**：若分類一直失敗（bot 回「分類失敗」），回報給使用者 —— 需啟用 `response_format` 退路（見 spec 風險段）。

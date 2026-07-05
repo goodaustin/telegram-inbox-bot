@@ -123,7 +123,7 @@ Gemini 相容端點對「強制指定 function 的 tool_choice」支援無法在
 6. 建 Notion integration（notion.so/my-integrations）拿 token；建一個母頁面、分享給
    integration、複製母頁面 id。
 7. 跑 `scripts/provision_notion.py <母頁面id>`，把印出的 `NOTION_DB_*` 貼進 `.env`。
-8. 手動在 todo DB 加 `Status`（status 型，選項 Todo/Done）。
+8. 手動在 todo DB 加 `Status`（status 型）；保留 Notion 預設選項（Not started / In progress / Done）——bot 寫入「Not started」、digest 過濾「Done」，勿改名成 Todo/Done。
 9. 到 aistudio.google.com/apikey 拿 Gemini API key。
 10. 依 `.env.example` 填 `.env`：`CLASSIFIER_PROVIDER=gemini`、`GEMINI_API_KEY=...`、
     `CLASSIFIER_MODEL=gemini-2.5-flash`、Telegram/Notion token 與 DB id。
