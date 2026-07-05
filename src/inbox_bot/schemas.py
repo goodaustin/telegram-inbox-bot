@@ -1,5 +1,5 @@
 from typing import Any, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 Category = Literal[
     "restaurant", "place", "todo", "article",
@@ -8,10 +8,18 @@ Category = Literal[
 
 
 class ClassifierResult(BaseModel):
-    category: Category
+    category: str
     confidence: float = Field(ge=0.0, le=1.0)
     raw_text: str
     fields: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("category")
+    @classmethod
+    def _known_category(cls, v: str) -> str:
+        from inbox_bot.categories import all_category_keys
+        if v not in all_category_keys():
+            raise ValueError(f"unknown category: {v!r}")
+        return v
 
 
 CATEGORY_FIELD_SCHEMAS: dict[Category, list[str]] = {

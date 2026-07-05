@@ -51,3 +51,24 @@ def test_article_schema_includes_type():
     assert CATEGORY_FIELD_SCHEMAS["article"] == [
         "title", "url", "publisher", "summary", "type"
     ]
+
+
+def test_classifier_result_accepts_builtin_category():
+    r = ClassifierResult(category="todo", confidence=0.9, raw_text="x")
+    assert r.category == "todo"
+
+
+def test_classifier_result_rejects_unknown_category():
+    import pytest
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError):
+        ClassifierResult(category="not_a_category", confidence=0.9, raw_text="x")
+
+
+def test_classifier_result_accepts_custom_category(monkeypatch):
+    import inbox_bot.categories as cats
+    from inbox_bot.categories import CustomCategory
+    monkeypatch.setattr(cats, "get_custom_categories",
+                        lambda: [CustomCategory("recipe", "食譜", "h")])
+    r = ClassifierResult(category="recipe", confidence=0.9, raw_text="x")
+    assert r.category == "recipe"
