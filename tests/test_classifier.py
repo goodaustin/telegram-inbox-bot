@@ -148,3 +148,65 @@ def test_make_client_gemini_uses_base_url(monkeypatch):
     monkeypatch.setattr(clf, "AsyncOpenAI", fake)
     clf._make_client(s)
     fake.assert_called_once_with(api_key="gm-x", base_url=s.gemini_base_url)
+
+
+def _make_json_response(payload: dict):
+    """A chat-completion whose message carries JSON in .content (no tool_calls) —
+    how Gemini's OpenAI-compat endpoint replies under response_format json mode."""
+    message = MagicMock()
+    message.content = json.dumps(payload)
+    message.tool_calls = None
+    choice = MagicMock()
+    choice.message = message
+    response = MagicMock()
+    response.choices = [choice]
+    return response
+
+
+@pytest.fixture
+def gemini_settings(monkeypatch):
+    for k, v in {
+        "TELEGRAM_BOT_TOKEN": "x", "TELEGRAM_CHANNEL_ID": "-1001",
+        "NOTION_TOKEN": "x", "CLASSIFIER_PROVIDER": "gemini",
+        "GEMINI_API_KEY": "gm-x", "CLASSIFIER_MODEL": "gemini-2.5-flash",
+        "NOTION_DB_RESTAURANT": "a", "NOTION_DB_PLACE": "b",
+        "NOTION_DB_TODO": "c", "NOTION_DB_ARTICLE": "d",
+        "NOTION_DB_QUOTE": "e", "NOTION_DB_APPAREL": "f",
+        "NOTION_DB_SKINCARE": "g", "NOTION_DB_PHOTO": "p",
+        "NOTION_DB_FUNNY": "fn", "NOTION_DB_INBOX": "h",
+    }.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    return Settings(_env_file=None)
+
+
+async def test_gemini_uses_json_response_format(gemini_settings):
+    client = MagicMock()
+    client.chat.completions.create = AsyncMock(return_value=_make_json_response({
+        "category": "todo", "confidence": 0.9,
+        "raw_text": "買牛奶", "fields": {"task": "買牛奶"},
+    }))
+    result = await classify(image_bytes=None, text="買牛奶",
+                            settings=gemini_settings, client=client)
+    assert result.category == "todo"
+    assert result.fields["task"] == "買牛奶"
+    kwargs = client.chat.completions.create.await_args.kwargs
+    # gemini path must use JSON mode and must NOT send function tools
+    assert kwargs["response_format"] == {"type": "json_object"}
+    assert "tools" not in kwargs
+
+
+async def test_gemini_strips_code_fences(gemini_settings):
+    fenced = MagicMock()
+    fenced.content = ('```json\n{"category": "quote", "confidence": 0.9, '
+                      '"raw_text": "x", "fields": {"quote": "x"}}\n```')
+    fenced.tool_calls = None
+    choice = MagicMock()
+    choice.message = fenced
+    resp = MagicMock()
+    resp.choices = [choice]
+    client = MagicMock()
+    client.chat.completions.create = AsyncMock(return_value=resp)
+    result = await classify(image_bytes=None, text="x",
+                            settings=gemini_settings, client=client)
+    assert result.category == "quote"

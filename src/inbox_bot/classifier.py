@@ -70,6 +70,75 @@ def _build_content(image_bytes: bytes | None, text: str | None) -> list[dict[str
     return parts
 
 
+_CATEGORY_ENUM = CLASSIFY_TOOL["input_schema"]["properties"]["category"]["enum"]
+
+# Gemini's OpenAI-compat endpoint doesn't reliably honor forced tool_choice, so
+# that provider gets a JSON-mode path instead of function calling. This instruction
+# is appended to the system prompt so the model emits exactly the expected shape.
+_JSON_INSTRUCTION = (
+    "\n\n---\n"
+    "Return ONLY a single JSON object — no markdown, no code fences, no prose — "
+    "with exactly these keys:\n"
+    '- "category": one of ' + ", ".join(_CATEGORY_ENUM) + "\n"
+    '- "confidence": a number from 0 to 1\n'
+    '- "raw_text": a string (OCR of the image, or echo of the input text)\n'
+    '- "fields": a JSON object holding the extracted fields for that category\n'
+)
+
+
+def _strip_fences(raw: str) -> str:
+    """Drop a leading ```/```json fence and trailing ``` if the model added them."""
+    s = raw.strip()
+    if s.startswith("```"):
+        s = s.split("\n", 1)[1] if "\n" in s else ""
+        if "```" in s:
+            s = s[: s.rfind("```")]
+    return s.strip()
+
+
+async def _request_args(
+    client: AsyncOpenAI,
+    settings: Settings,
+    system: str,
+    content: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Call the model and return the raw classification args dict.
+
+    gemini: JSON mode (response_format) — its OpenAI-compat endpoint doesn't
+    reliably honor forced tool_choice. Other providers: forced function call.
+    Raises ClassifierError on a structurally empty response (caller won't retry).
+    """
+    if settings.classifier_provider == "gemini":
+        resp = await client.chat.completions.create(
+            model=settings.classifier_model,
+            max_tokens=1024,
+            messages=[
+                {"role": "system", "content": system + _JSON_INSTRUCTION},
+                {"role": "user", "content": content},
+            ],
+            response_format={"type": "json_object"},
+        )
+        raw = resp.choices[0].message.content
+        if not raw:
+            raise ClassifierError("no content in response")
+        return json.loads(_strip_fences(raw))
+
+    resp = await client.chat.completions.create(
+        model=settings.classifier_model,
+        max_tokens=1024,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": content},
+        ],
+        tools=[_OPENAI_TOOL],
+        tool_choice={"type": "function", "function": {"name": "classify_item"}},
+    )
+    tool_calls = resp.choices[0].message.tool_calls
+    if not tool_calls:
+        raise ClassifierError("no tool_calls in response")
+    return json.loads(tool_calls[0].function.arguments)
+
+
 async def classify(
     *,
     image_bytes: bytes | None,
@@ -86,21 +155,7 @@ async def classify(
     last_err: Exception | None = None
     for attempt in (1, 2):
         try:
-            resp = await client.chat.completions.create(
-                model=settings.classifier_model,
-                max_tokens=1024,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": content},
-                ],
-                tools=[_OPENAI_TOOL],
-                tool_choice={"type": "function", "function": {"name": "classify_item"}},
-            )
-            tool_calls = resp.choices[0].message.tool_calls
-            if not tool_calls:
-                raise ClassifierError("no tool_calls in response")
-
-            args = json.loads(tool_calls[0].function.arguments)
+            args = await _request_args(client, settings, system, content)
             result = ClassifierResult(**args)
             if result.confidence < settings.confidence_threshold:
                 return ClassifierResult(
