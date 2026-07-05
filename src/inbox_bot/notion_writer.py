@@ -32,20 +32,21 @@ def build_telegram_url(channel_id: int, message_id: int) -> str:
     return f"https://t.me/c/{short}/{message_id}"
 
 
-def _title(value: str) -> dict[str, Any]:
-    return {"title": [{"type": "text", "text": {"content": value[:2000]}}]}
+def _title(value: str | None) -> dict[str, Any]:
+    return {"title": [{"type": "text", "text": {"content": (value or "")[:2000]}}]}
 
 
-def _text(value: str) -> dict[str, Any]:
-    return {"rich_text": [{"type": "text", "text": {"content": value[:2000]}}]}
+def _text(value: str | None) -> dict[str, Any]:
+    return {"rich_text": [{"type": "text", "text": {"content": (value or "")[:2000]}}]}
 
 
-def _select(value: str) -> dict[str, Any]:
-    return {"select": {"name": value[:100]}}
+def _select(value: str | None) -> dict[str, Any]:
+    return {"select": {"name": (value or "")[:100]}}
 
 
-def _multi(values: list[str]) -> dict[str, Any]:
-    return {"multi_select": [{"name": v[:100]} for v in values]}
+def _multi(values: list[str] | None) -> dict[str, Any]:
+    # tolerate None and None/empty elements (Gemini JSON mode emits nulls)
+    return {"multi_select": [{"name": v[:100]} for v in (values or []) if v]}
 
 
 def _url(value: str) -> dict[str, Any]:

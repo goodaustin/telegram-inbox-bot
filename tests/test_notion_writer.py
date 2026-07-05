@@ -201,6 +201,19 @@ def test_build_properties_skincare_smoke():
     assert props["Price"]["number"] == 1500.0
 
 
+def test_build_properties_tolerates_none_values():
+    # Gemini JSON mode can emit null scalars AND null list elements; no helper
+    # should do None[:n]. Calls build_properties directly (bypasses the writer filter).
+    now = datetime(2026, 7, 5, 10, 0, tzinfo=ZoneInfo("Asia/Taipei"))
+    props = build_properties(
+        category="restaurant",
+        fields={"name": None, "city": None, "cuisine": [None, "日料"], "notes": None},
+        telegram_url="https://t.me/c/1/2", maps_link=None, now=now,
+    )
+    assert props["Name"]["title"][0]["text"]["content"] == ""
+    assert {o["name"] for o in props["Cuisine"]["multi_select"]} == {"日料"}
+
+
 async def test_write_drops_null_valued_fields_from_model(settings):
     # Gemini JSON mode emits explicit nulls for empty fields; they must not reach
     # _select/_title/_text (None[:n] → 'NoneType' object is not subscriptable).
