@@ -39,6 +39,48 @@ launchctl load   ~/Library/LaunchAgents/com.shao.telegram-inbox.plist
 - App: `logs/bot.log` (rotated daily, 14 days kept)
 - launchd: `logs/launchd.out.log`, `logs/launchd.err.log`
 
+## Custom categories (`custom_categories.toml`)
+
+The 10 built-in categories are hard-coded, but you can add your **own** extra
+categories (e.g. recipes) without touching any Python — edit
+`custom_categories.toml` at the repo root and `.env`. Each `[[category]]` block
+becomes one new Notion database.
+
+```toml
+[[category]]
+key  = "recipe"        # lowercase id (^[a-z][a-z0-9_]*$); maps to env var NOTION_DB_RECIPE
+name = "食譜"           # the Notion table's display name
+hint = "食譜、料理作法、想煮的菜、菜單截圖"   # tells the classifier what belongs here
+```
+
+Every custom category uses a fixed standard schema: `Name` (title), `Notes`
+(rich_text), `Tags` (multi_select), `Source` (url), `Date Added` (date). The
+classifier extracts `name` / `notes` / `tags`.
+
+**To add one:**
+
+1. Add a `[[category]]` block to `custom_categories.toml` (rules: `key` must be
+   lowercase, unique, and not collide with a built-in key).
+2. Create its Notion table under your parent page:
+   ```bash
+   uv run python scripts/provision_notion.py add <PARENT_PAGE_ID>
+   ```
+   This prints `NOTION_DB_RECIPE=<id>` for each new category.
+3. Paste that `NOTION_DB_<KEY>=<id>` line into `.env`.
+4. Restart the bot (the config is read at startup, not hot-reloaded).
+
+**To remove one:** delete its `[[category]]` block and restart; archive the
+old table in Notion if you no longer want it (the leftover `.env` line is
+harmless).
+
+> Custom category DB ids are resolved from environment at runtime, so the bot
+> loads `.env` into `os.environ` on startup (`get_settings()` →
+> `load_dotenv(find_dotenv(usecwd=True))`). Run the bot with the project root as
+> the working directory so both the pydantic model and `load_dotenv` find `.env`.
+
+Related switch: set `DIGEST_ENABLED=false` in `.env` to disable the weekly
+Sunday digest entirely (default `true`).
+
 ## ⚠️ Dependency constraint: `notion-client` pinned `>=2.2,<2.4`
 
 Do **not** upgrade `notion-client` to 2.4+. This Notion workspace is on the new
