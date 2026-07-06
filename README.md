@@ -1,6 +1,6 @@
 # Telegram Inbox Bot
 
-Personal inbox: Telegram channel → Claude vision → Notion (7 categorized lists + fallback Inbox). Weekly Sunday 07:30 digest of open todos and unread articles.
+Personal inbox: Telegram channel → OpenAI or Gemini vision (pluggable via `CLASSIFIER_PROVIDER`) → Notion (9 categorized lists + fallback Inbox). Optional weekly Sunday 07:30 digest of open todos and unread articles (`DIGEST_ENABLED`, default on). Extra categories can be added via [`custom_categories.toml`](#custom-categories-custom_categoriestoml).
 
 ## Setup
 
