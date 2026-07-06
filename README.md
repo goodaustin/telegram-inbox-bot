@@ -14,11 +14,19 @@ uv run python -m inbox_bot.main
 
 ## Deployment
 
-Mac Studio + launchd. Plist at `launchd/com.shao.telegram-inbox.plist`. Load with:
+MacBook Air + launchd (KeepAlive). Plist at `launchd/com.shao.telegram-inbox.plist`.
+
+On this machine `~/Library/LaunchAgents` is root-owned and `launchctl load/unload`
+fails with an I/O error, so the agent is bootstrapped **directly from the project
+folder**. After a reboot or re-login, (re)load it with:
+
 ```bash
-cp launchd/com.shao.telegram-inbox.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.shao.telegram-inbox.plist
+./launchd/reload.sh
 ```
+
+That script runs `launchctl bootout` (ignored if absent) then
+`launchctl bootstrap gui/$(id -u) …`. `bootstrap` is occasionally flaky with an
+I/O error — just re-run it. See `docs/` launchd notes for background.
 
 ## Testing
 
@@ -30,8 +38,10 @@ uv run pytest -m smoke # real API smoke tests (manual; costs $)
 ### To stop / restart the daemon
 
 ```bash
-launchctl unload ~/Library/LaunchAgents/com.shao.telegram-inbox.plist
-launchctl load   ~/Library/LaunchAgents/com.shao.telegram-inbox.plist
+# stop
+launchctl bootout "gui/$(id -u)/com.shao.telegram-inbox"
+# start / restart (bootout + bootstrap)
+./launchd/reload.sh
 ```
 
 ### Logs
