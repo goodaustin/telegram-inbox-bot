@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     digest_minute: int = 30
     digest_enabled: bool = True
 
+    # 私人 life repo 絕對路徑（日記 / 名言 / 提醒 log 存放處）。
+    # 留空則 /j /s /g /b 指令與提醒排程全部停用（對既有部署零影響）。
+    life_dir: str = ""
+
     @model_validator(mode="after")
     def _check_provider_key(self) -> "Settings":
         if self.classifier_provider == "openai":

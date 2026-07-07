@@ -1,14 +1,17 @@
 import asyncio
 import logging
 import sys
+from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from telegram import Bot
 from inbox_bot.bot import build_application
 from inbox_bot.config import get_settings
 from inbox_bot.digest import send_digest
+from inbox_bot import reminders as rem
 
 
 def _setup_logging() -> None:
@@ -47,6 +50,61 @@ def register_digest_job(scheduler, settings) -> bool:
     return True
 
 
+def _parse_hhmm(s) -> tuple[int, int] | None:
+    if not s or ":" not in str(s):
+        return None
+    h, _, m = str(s).partition(":")
+    try:
+        return int(h), int(m)
+    except ValueError:
+        return None
+
+
+async def send_reminders(settings) -> None:
+    """依 reminders.yaml 發本週剩餘額度提醒(每項一則),並記下 message_id→target。"""
+    cfg = rem.load_reminders(settings.life_dir)
+    if not cfg:
+        return
+    now = datetime.now(ZoneInfo(settings.timezone))
+    msgs = rem.build_reminder_messages(cfg, settings.life_dir, now)
+    if not msgs:
+        logging.info("reminders: all targets met this week; staying silent")
+        return
+    bot = Bot(token=settings.telegram_bot_token)
+    mapping: dict[str, str] = {}
+    for target, text in msgs:
+        m = await bot.send_message(chat_id=settings.telegram_channel_id, text=text)
+        mapping[str(m.message_id)] = target["name"]
+    rem.save_msgid_map(settings.life_dir, mapping)
+
+
+def register_reminder_jobs(scheduler, settings) -> bool:
+    """平日/假日各一個 cron job(時段由 reminders.yaml 的 check_times 決定)。"""
+    if not settings.life_dir:
+        return False
+    cfg = rem.load_reminders(settings.life_dir)
+    if not cfg:
+        return False
+    tz = ZoneInfo(settings.timezone)
+    ct = cfg.get("check_times", {})
+    added = False
+    wd = _parse_hhmm(ct.get("weekday"))
+    if wd:
+        scheduler.add_job(
+            send_reminders, CronTrigger(day_of_week="mon-fri", hour=wd[0], minute=wd[1], timezone=tz),
+            kwargs={"settings": settings}, id="reminders_weekday", replace_existing=True,
+        )
+        added = True
+    we = _parse_hhmm(ct.get("weekend"))
+    if we:
+        scheduler.add_job(
+            send_reminders, CronTrigger(day_of_week="sat,sun", hour=we[0], minute=we[1], timezone=tz),
+            kwargs={"settings": settings}, id="reminders_weekend", replace_existing=True,
+        )
+        added = True
+    return added
+
+
 async def _run() -> None:
     settings = get_settings()
     tz = ZoneInfo(settings.timezone)
@@ -54,12 +112,13 @@ async def _run() -> None:
     app = build_application(settings)
 
     scheduler = AsyncIOScheduler(timezone=tz)
-    if register_digest_job(scheduler, settings):
-        scheduler.start()
-        job = scheduler.get_job("weekly_digest")
-        logging.info("scheduler started; next digest: %s", job.next_run_time if job else "?")
-    else:
-        scheduler.start()  # started but no jobs; harmless and keeps shutdown symmetric
+    register_digest_job(scheduler, settings)
+    register_reminder_jobs(scheduler, settings)
+    scheduler.start()  # start once; jobs may be zero (harmless, keeps shutdown symmetric)
+    for jid in ("weekly_digest", "reminders_weekday", "reminders_weekend"):
+        job = scheduler.get_job(jid)
+        if job:
+            logging.info("scheduled %s; next run: %s", jid, job.next_run_time)
 
     await app.initialize()
     await app.start()

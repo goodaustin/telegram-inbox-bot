@@ -3,9 +3,13 @@
 # Plan B: bootstrap directly from the project folder because ~/Library/LaunchAgents
 # is root-owned and not user-writable on this machine.
 set -e
-PLIST="$HOME/Projects/telegram-inbox-bot/launchd/com.shao.telegram-inbox.plist"
+DIR="$HOME/Projects/telegram-inbox-bot/launchd"
 UID_NUM=$(id -u)
-launchctl bootout  "gui/$UID_NUM/com.shao.telegram-inbox" 2>/dev/null || true
-launchctl bootstrap "gui/$UID_NUM" "$PLIST"
+# 兩個 agent:主 bot(KeepAlive)+ 每晚日記 commit(23:55)
+for LABEL in com.shao.telegram-inbox com.shao.life-journal; do
+  PLIST="$DIR/$LABEL.plist"
+  launchctl bootout  "gui/$UID_NUM/$LABEL" 2>/dev/null || true
+  launchctl bootstrap "gui/$UID_NUM" "$PLIST"
+done
 echo "Loaded. Current state:"
-launchctl list | grep telegram-inbox || echo "  (NOT found — check $PLIST)"
+launchctl list | grep -E "telegram-inbox|life-journal" || echo "  (NOT found — check plists in $DIR)"
