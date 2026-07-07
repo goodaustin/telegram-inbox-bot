@@ -31,11 +31,15 @@ async def _route_life_command(post, cmd: str, settings: Settings) -> bool:
     life = settings.life_dir
     now = datetime.now(ZoneInfo(settings.timezone))
 
-    # /j 日記寫入
+    # /j 日記寫入(支援 "/j -1 內容" 補記昨天、"/j -2 ..." 前天)
     if cmd.startswith("/j ") or cmd.startswith("/journal "):
         body = cmd.split(None, 1)[1].strip() if " " in cmd else ""
+        day_offset = 0
+        mo = _OFFSET_RE.match(body)
+        if mo:
+            day_offset, body = -int(mo.group(1)), mo.group(2).strip()
         if body:
-            write_journal(body, now, life)
+            write_journal(body, now, life, day_offset=day_offset)
             await post.reply_text("📓")
         return True
 

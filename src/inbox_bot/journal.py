@@ -102,14 +102,21 @@ def _update_frontmatter(content: str, new_mood: str | None, new_tags: list[str])
     return f"---\n{new_fm}\n---\n{body}"
 
 
-def write_journal(text: str, now: datetime, life_dir: str) -> Path:
-    """append 一則日記到當日檔案(不存在則建 frontmatter)。回寫入的檔案路徑。"""
-    d = resolve_journal_date(now)
+def write_journal(text: str, now: datetime, life_dir: str, day_offset: int = 0) -> Path:
+    """append 一則日記到當日檔案(不存在則建 frontmatter)。回寫入的檔案路徑。
+
+    day_offset:0=今天(套夜貓規則);負數=補記過去某天(如 -1=昨天),
+    此時直接用該日曆日、跳過凌晨3點規則,並在段落標題標註 [補記]。
+    """
+    if day_offset:
+        d = (now + timedelta(days=day_offset)).date()
+    else:
+        d = resolve_journal_date(now)
     tags, mood = extract_meta(text)
     fpath = Path(life_dir) / "journal" / str(d.year) / f"{d.isoformat()}.md"
     fpath.parent.mkdir(parents=True, exist_ok=True)
-    ts = now.strftime("%H:%M")
-    entry = f"## {ts}\n{text}\n"
+    header = f"## {now.strftime('%H:%M')}" + (" [補記]" if day_offset else "")
+    entry = f"{header}\n{text}\n"
     if not fpath.exists():
         fpath.write_text(_build_frontmatter(d, mood, tags, 1) + "\n" + entry, encoding="utf-8")
     else:

@@ -46,6 +46,16 @@ def test_write_journal_appends_and_counts(tmp_path):
     assert "健身" in content
 
 
+def test_write_journal_backdate(tmp_path):
+    # 今天 7/7 補記昨天(-1)→ 應寫進 2026-07-06.md 且標 [補記]
+    p = write_journal("昨天漏記的", _dt(2026, 7, 7, 10, 5), str(tmp_path), day_offset=-1)
+    assert p == tmp_path / "journal" / "2026" / "2026-07-06.md"
+    content = p.read_text(encoding="utf-8")
+    assert "date: 2026-07-06" in content
+    assert "## 10:05 [補記]" in content
+    assert "昨天漏記的" in content
+
+
 def test_parse_date_range():
     now = _dt(2026, 7, 8, 15)  # 2026-07-08 是週三
     assert parse_date_range("昨天的事", now) == (_dt(2026, 7, 7).date(), _dt(2026, 7, 7).date())
