@@ -21,6 +21,9 @@ CATEGORY_EMOJI = {
 
 _GB_RE = re.compile(r"^/([gb])\s+(.*)$", re.S)
 _OFFSET_RE = re.compile(r"^-(\d+)\s+(.*)$", re.S)
+# /j 或 /journal，後接可選 "-N" 位移與內容；/j 後有無空格皆可(/j-1)。
+# lookahead 確保只吃 /j、/journal 本身，不誤吞 /jog、/journalize 等。
+_JOURNAL_RE = re.compile(r"^/(?:j|journal)(?=$|\s|-)\s*(?:-(\d+))?\s*(.*)$", re.S)
 
 
 async def _route_life_command(post, cmd: str, settings: Settings) -> bool:
@@ -31,16 +34,18 @@ async def _route_life_command(post, cmd: str, settings: Settings) -> bool:
     life = settings.life_dir
     now = datetime.now(ZoneInfo(settings.timezone))
 
-    # /j 日記寫入(支援 "/j -1 內容" 補記昨天、"/j -2 ..." 前天)
-    if cmd.startswith("/j ") or cmd.startswith("/journal "):
-        body = cmd.split(None, 1)[1].strip() if " " in cmd else ""
-        day_offset = 0
-        mo = _OFFSET_RE.match(body)
-        if mo:
-            day_offset, body = -int(mo.group(1)), mo.group(2).strip()
+    # /j 日記寫入：支援 "/j 內容"(今天)、"/j -1 內容"(補昨天)、"/j -2 …"(前天)；
+    # /j 後有無空格皆可(/j-1 也認得)。缺內容則回提示、不靜默寫入垃圾。
+    mo = _JOURNAL_RE.match(cmd)
+    if mo:
+        day_offset = -int(mo.group(1)) if mo.group(1) else 0
+        body = mo.group(2).strip()
         if body:
             write_journal(body, now, life, day_offset=day_offset)
             await post.reply_text("📓")
+        else:
+            await post.reply_text(
+                "格式：/j 今天的內容；補記昨天用 /j -1 內容。這次沒偵測到日記內容，未寫入。")
         return True
 
     # /s 查詢

@@ -1,8 +1,62 @@
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
-from inbox_bot.bot import handle_channel_post, CATEGORY_EMOJI
+from freezegun import freeze_time
+from inbox_bot.bot import handle_channel_post, _route_life_command, CATEGORY_EMOJI
 from inbox_bot.config import Settings
 from inbox_bot.schemas import ClassifierResult
+
+
+def _life_post():
+    post = MagicMock()
+    post.reply_text = AsyncMock()
+    post.reply_to_message = None
+    return post
+
+
+def _life_settings(tmp_path):
+    return SimpleNamespace(life_dir=str(tmp_path), timezone="Asia/Taipei")
+
+
+@freeze_time("2026-07-13 06:00:00")  # = 14:00 台北時間 2026-07-13
+async def test_j_backfill_without_space_writes_yesterday(tmp_path):
+    post = _life_post()
+    handled = await _route_life_command(post, "/j-1 昨天漏記的", _life_settings(tmp_path))
+    assert handled is True
+    p = tmp_path / "journal" / "2026" / "2026-07-12.md"
+    assert p.exists()
+    text = p.read_text(encoding="utf-8")
+    assert "昨天漏記的" in text
+    assert "[補記]" in text
+    post.reply_text.assert_awaited()
+
+
+@freeze_time("2026-07-13 06:00:00")
+async def test_j_offset_without_content_replies_hint_and_writes_nothing(tmp_path):
+    post = _life_post()
+    handled = await _route_life_command(post, "/j -1", _life_settings(tmp_path))
+    assert handled is True
+    assert not (tmp_path / "journal" / "2026" / "2026-07-13.md").exists()
+    assert not (tmp_path / "journal" / "2026" / "2026-07-12.md").exists()
+    reply = post.reply_text.await_args.args[0]
+    assert "內容" in reply
+
+
+@freeze_time("2026-07-13 06:00:00")
+async def test_j_with_space_and_content_writes_today(tmp_path):
+    post = _life_post()
+    handled = await _route_life_command(post, "/j 今天寫的", _life_settings(tmp_path))
+    assert handled is True
+    p = tmp_path / "journal" / "2026" / "2026-07-13.md"
+    assert p.exists()
+    assert "今天寫的" in p.read_text(encoding="utf-8")
+
+
+async def test_jog_is_not_treated_as_journal(tmp_path):
+    post = _life_post()
+    handled = await _route_life_command(post, "/jog 隨便打", _life_settings(tmp_path))
+    assert handled is False
+    assert not (tmp_path / "journal").exists()
 
 
 @pytest.fixture
